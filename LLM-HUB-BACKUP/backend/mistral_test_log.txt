@@ -1,0 +1,8 @@
+API key length: 32
+API key first 5 chars: jMNEZ...
+Sending request to Mistral API...
+Status code: 200
+Response: {"id":"560bbd03e8ae45169ffb3ea7254034ab","object":"chat.completion","created":1748257347,"model":"mistral-tiny","choices":[{"index":0,"message":{"role":"assistant","tool_calls":null,"content":"Hello! I'm just a computer program, so I don't have feelings, but I'm here and ready to help you with your questions. How can I assist you today?"},"finish_reason":"stop"}],"usage":{"prompt_tokens":9,"total_tokens":49,"completion_tokens":40}}
+
+Successful response content:
+Hello! I'm just a computer program, so I don't have feelings, but I'm here and ready to help you with your questions. How can I assist you today?
