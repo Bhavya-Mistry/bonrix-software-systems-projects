@@ -1,0 +1,29 @@
+# === Global ===
+*.log
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.env
+.DS_Store
+
+# === Backend (Python) ===
+LLM-HUB-BACKUP/backend/venv/
+LLM-HUB-BACKUP/backend/__pycache__/
+LLM-HUB-BACKUP/backend/.env
+LLM-HUB-BACKUP/backend/backups/
+LLM-HUB-BACKUP/backend/migrations/
+LLM-HUB-BACKUP/backend/*.sqlite3
+LLM-HUB-BACKUP/backend/*.db
+
+# === Frontend (Node.js) ===
+LLM-HUB-BACKUP/frontend/node_modules/
+LLM-HUB-BACKUP/frontend/.env
+LLM-HUB-BACKUP/frontend/debug.log
+LLM-HUB-BACKUP/frontend/build/
+LLM-HUB-BACKUP/frontend/dist/
+
+# === IDE/Editor ===
+.vscode/
+.idea/
+*.swp
