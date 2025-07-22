@@ -1,0 +1,288 @@
+/* Custom Theme Styles to override existing styles */
+
+/* Color Variables */
+:root {
+  --strawberry-pink: #FF6B98;
+  --light-pink: #FFC2D1;
+  --blue-primary: #5B9BD5;
+  --blue-secondary: #8CC7F4;
+  --dark-blue: #2E5984;
+  --light-gray: #F8F9FA;
+  --medium-gray: #E9ECEF;
+  --dark-gray: #343A40;
+}
+
+/* App Bar */
+.MuiAppBar-root {
+  background: linear-gradient(135deg, var(--strawberry-pink), var(--blue-primary)) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 152, 0.15) !important;
+  border-bottom: none !important;
+}
+
+.MuiAppBar-root.MuiPaper-root {
+  background-image: linear-gradient(135deg, var(--strawberry-pink), var(--blue-primary)) !important;
+}
+
+/* Fix app bar title visibility */
+.MuiAppBar-root .MuiTypography-root,
+.MuiAppBar-root h6,
+.MuiToolbar-root h6,
+.MuiAppBar-root .MuiButton-root,
+.MuiAppBar-root .MuiIconButton-root {
+  color: white !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Specific fix for LLM HUB title */
+.MuiAppBar-root .MuiToolbar-root > h6,
+.MuiAppBar-root .MuiToolbar-root > .MuiTypography-root {
+  color: white !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 1px !important;
+  font-weight: 800 !important;
+}
+
+/* Dark mode app bar */
+body.dark-mode .MuiAppBar-root {
+  background: linear-gradient(135deg, #FF6B98, #5B9BD5) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Cards */
+.MuiCard-root {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 20px rgba(91, 155, 213, 0.1) !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  background-color: white !important;
+  overflow: hidden !important;
+}
+
+.MuiCard-root:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 12px 28px rgba(255, 107, 152, 0.15) !important;
+}
+
+.MuiCard-root::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 4px !important;
+  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-primary)) !important;
+}
+
+/* Dark mode cards */
+body.dark-mode .MuiCard-root {
+  background-color: #2A2A2A !important;
+  border: none !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+body.dark-mode .MuiCard-root:hover {
+  box-shadow: 0 12px 28px rgba(255, 107, 152, 0.2) !important;
+}
+
+/* Papers */
+.MuiPaper-root {
+  border-radius: 16px !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(91, 155, 213, 0.08) !important;
+  overflow: hidden !important;
+}
+
+/* Dark mode papers */
+body.dark-mode .MuiPaper-root {
+  background-color: #2A2A2A !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Buttons */
+.MuiButton-root {
+  border-radius: 30px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  letter-spacing: 0.5px !important;
+  padding: 8px 24px !important;
+  font-family: 'Quicksand', 'Inter', sans-serif !important;
+}
+
+.MuiButton-contained {
+  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-primary)) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 152, 0.2) !important;
+  border: none !important;
+}
+
+.MuiButton-contained:hover {
+  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-secondary)) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 16px rgba(255, 107, 152, 0.25) !important;
+}
+
+.MuiButton-outlined {
+  border: 2px solid var(--strawberry-pink) !important;
+  color: var(--strawberry-pink) !important;
+}
+
+.MuiButton-outlined:hover {
+  background-color: rgba(255, 107, 152, 0.05) !important;
+  border: 2px solid var(--strawberry-pink) !important;
+}
+
+/* Dark mode buttons */
+body.dark-mode .MuiButton-contained {
+  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-primary)) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 152, 0.3) !important;
+}
+
+body.dark-mode .MuiButton-contained:hover {
+  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-secondary)) !important;
+  box-shadow: 0 8px 16px rgba(255, 107, 152, 0.4) !important;
+}
+
+/* Typography */
+body {
+  font-family: 'Quicksand', 'Inter', 'Roboto', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6, .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6 {
+  font-family: 'Quicksand', 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.MuiTypography-root {
+  color: var(--dark-gray) !important;
+}
+
+.MuiTypography-h5, .MuiTypography-h6 {
+  color: var(--strawberry-pink) !important;
+  font-weight: 700 !important;
+  display: inline-block !important;
+}
+
+/* Fix text visibility in cards and buttons */
+.MuiCard-root .MuiTypography-root,
+.MuiButton-root .MuiTypography-root,
+.MuiChip-root .MuiTypography-root,
+.MuiListItem-root .MuiTypography-root {
+  color: var(--dark-gray) !important;
+}
+
+.MuiButton-contained .MuiTypography-root,
+.MuiButton-contained {
+  color: white !important;
+}
+
+/* Dark mode typography */
+body.dark-mode .MuiTypography-root {
+  color: #F8F9FA !important;
+}
+
+body.dark-mode .MuiTypography-colorTextSecondary {
+  color: #CED4DA !important;
+}
+
+body.dark-mode .MuiCard-root .MuiTypography-root,
+body.dark-mode .MuiButton-root .MuiTypography-root,
+body.dark-mode .MuiChip-root .MuiTypography-root,
+body.dark-mode .MuiListItem-root .MuiTypography-root {
+  color: #F8F9FA !important;
+}
+
+/* Tables */
+.MuiTableCell-root {
+  border-color: var(--light-pink) !important;
+  padding: 16px !important;
+  font-family: 'Quicksand', 'Inter', sans-serif !important;
+}
+
+.MuiTableCell-head {
+  font-weight: 700 !important;
+  background-color: rgba(255, 107, 152, 0.05) !important;
+  color: var(--strawberry-pink) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  font-size: 0.8rem !important;
+}
+
+.MuiTableRow-root:hover {
+  background-color: rgba(91, 155, 213, 0.05) !important;
+}
+
+.MuiTableRow-root:nth-of-type(even) {
+  background-color: rgba(255, 194, 209, 0.05) !important;
+}
+
+/* Dark mode tables */
+body.dark-mode .MuiTableCell-root {
+  border-color: rgba(255, 107, 152, 0.2) !important;
+}
+
+body.dark-mode .MuiTableCell-head {
+  background-color: rgba(255, 107, 152, 0.1) !important;
+  color: var(--light-pink) !important;
+}
+
+body.dark-mode .MuiTableRow-root:hover {
+  background-color: rgba(91, 155, 213, 0.1) !important;
+}
+
+body.dark-mode .MuiTableRow-root:nth-of-type(even) {
+  background-color: rgba(255, 194, 209, 0.05) !important;
+}
+
+/* Chips */
+.MuiChip-root {
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  font-family: 'Quicksand', 'Inter', sans-serif !important;
+  box-shadow: 0 2px 5px rgba(91, 155, 213, 0.1) !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  color: white !important;
+}
+
+.MuiChip-root .MuiChip-label {
+  color: white !important;
+  padding: 0 12px !important;
+}
+
+.MuiChip-root:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(255, 107, 152, 0.15) !important;
+}
+
+.MuiChip-colorPrimary {
+  background-color: var(--strawberry-pink) !important;
+}
+
+.MuiChip-colorSecondary {
+  background-color: var(--blue-primary) !important;
+}
+
+.MuiChip-outlined {
+  border: 2px solid var(--light-pink) !important;
+  background-color: transparent !important;
+}
+
+.MuiChip-outlined .MuiChip-label {
+  color: var(--strawberry-pink) !important;
+}
+
+/* Background colors */
+body {
+  background-color: var(--light-gray) !important;
+  background-image: linear-gradient(120deg, rgba(255, 194, 209, 0.1) 0%, rgba(140, 199, 244, 0.1) 100%) !important;
+  min-height: 100vh !important;
+}
+
+body.dark-mode {
+  background-color: #1A1A1A !important;
+  background-image: linear-gradient(120deg, rgba(255, 107, 152, 0.05) 0%, rgba(91, 155, 213, 0.05) 100%) !important;
+}
