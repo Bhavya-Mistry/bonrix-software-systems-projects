@@ -1,0 +1,616 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Typography,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  CircularProgress,
+  Divider,
+  Card,
+  CardContent,
+  Grid,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  IconButton,
+  Tooltip,
+  Container
+} from '@mui/material';
+// Using standard TextField with type='date' instead of MUI date pickers
+import DownloadIcon from '@mui/icons-material/Download';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CloseIcon from '@mui/icons-material/Close';
+import axios from 'axios';
+
+// API URL from environment variable
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const StatementHistory = () => {
+  // State for statement data and loading
+  const [statements, setStatements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
+  
+  // State for filters
+  const [openFilters, setOpenFilters] = useState(false);
+  const [period, setPeriod] = useState('month');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [transactionType, setTransactionType] = useState('all');
+  
+  // Fetch statement data on component mount
+  useEffect(() => {
+    fetchStatementData();
+  }, []);
+  
+  // Fetch statement data
+  const fetchStatementData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch statement history
+      const statementsResponse = await axios.get(`${API_URL}/statement/history`);
+      setStatements(statementsResponse.data.items || []);
+      
+      // Fetch summary
+      const summaryResponse = await axios.get(`${API_URL}/statement/summary?period=${period}`);
+      setSummary(summaryResponse.data);
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching statement data:', error);
+      setLoading(false);
+    }
+  };
+  
+  // Apply filters
+  const applyFilters = async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters
+      let queryParams = new URLSearchParams();
+      
+      if (startDate) {
+        queryParams.append('start_date', startDate.toISOString());
+      }
+      
+      if (endDate) {
+        queryParams.append('end_date', endDate.toISOString());
+      }
+      
+      // Fetch filtered statement history
+      const statementsResponse = await axios.get(
+        `${API_URL}/statement/history?${queryParams.toString()}`
+      );
+      setStatements(statementsResponse.data.items || []);
+      
+      // Fetch summary with the same period
+      const summaryResponse = await axios.get(`${API_URL}/statement/summary?period=${period}`);
+      setSummary(summaryResponse.data);
+      
+      setLoading(false);
+      setOpenFilters(false);
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      setLoading(false);
+    }
+  };
+  
+  // Reset filters
+  const resetFilters = () => {
+    setPeriod('month');
+    setStartDate(null);
+    setEndDate(null);
+    setTransactionType('all');
+    fetchStatementData();
+    setOpenFilters(false);
+  };
+  
+  // Format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+  
+  // Get transaction type chip color
+  const getTransactionTypeChip = (type) => {
+    switch (type) {
+      case 'purchase':
+        return <Chip label="Purchase" size="small" color="success" />;
+      case 'usage':
+        return <Chip label="Usage" size="small" color="primary" />;
+      case 'refund':
+        return <Chip label="Refund" size="small" color="warning" />;
+      case 'admin_adjustment':
+        return <Chip label="Admin Adjustment" size="small" color="secondary" />;
+      default:
+        return <Chip label={type} size="small" />;
+    }
+  };
+  
+  // Export statement as CSV
+  const exportAsCSV = () => {
+    if (statements.length === 0) return;
+    
+    // Prepare CSV header and data
+    const headers = [
+      'ID',
+      'Date',
+      'Username',
+      'Email',
+      'Type',
+      'Description',
+      'Reference ID',
+      'Credit',
+      'Debit',
+      'Purchase Amount',
+      'Opening Balance',
+      'Closing Balance'
+    ];
+    
+    const csvData = statements.map(statement => [
+      statement.id,
+      formatDate(statement.timestamp),
+      statement.username,
+      statement.email,
+      statement.transaction_type,
+      statement.description,
+      statement.reference_id || '',
+      statement.credit,
+      statement.debit,
+      statement.purchase_amount,
+      statement.opening_balance,
+      statement.closing_balance
+    ]);
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'statement_history.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  return (
+    <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+      {loading ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <Grid container spacing={2} sx={{ mb: 3, pl: 0 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ 
+                borderRadius: '10px', 
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                border: '1px solid',
+                borderColor: 'divider',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '4px',
+                  height: '100%',
+                  background: 'linear-gradient(180deg, #4caf50 0%, #81c784 100%)'
+                }
+              }}>
+                <CardContent sx={{ pl: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 500, letterSpacing: '0.1px' }}>
+                    Total Credits Added
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    color: 'success.main', 
+                    fontWeight: 'bold',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    +{summary?.total_credits_added || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ 
+                borderRadius: '10px', 
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                border: '1px solid',
+                borderColor: 'divider',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '4px',
+                  height: '100%',
+                  background: 'linear-gradient(180deg, #f44336 0%, #e57373 100%)'
+                }
+              }}>
+                <CardContent sx={{ pl: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 500, letterSpacing: '0.1px' }}>
+                    Total Credits Used
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    color: 'error.main', 
+                    fontWeight: 'bold',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    -{summary?.total_credits_used || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ 
+                borderRadius: '10px', 
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                border: '1px solid',
+                borderColor: 'divider',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '4px',
+                  height: '100%',
+                  background: 'linear-gradient(180deg, #2196f3 0%, #64b5f6 100%)'
+                }
+              }}>
+                <CardContent sx={{ pl: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 500, letterSpacing: '0.1px' }}>
+                    Net Change
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    color: summary?.net_change >= 0 ? 'success.main' : 'error.main', 
+                    fontWeight: 'bold',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    {summary?.net_change >= 0 ? '+' : ''}{summary?.net_change || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ 
+                borderRadius: '10px', 
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                border: '1px solid',
+                borderColor: 'divider',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '4px',
+                  height: '100%',
+                  background: 'linear-gradient(180deg, #9c27b0 0%, #ba68c8 100%)'
+                }
+              }}>
+                <CardContent sx={{ pl: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 500, letterSpacing: '0.1px' }}>
+                    Total Transactions
+                  </Typography>
+                  <Typography variant="h4" sx={{ 
+                    fontWeight: 'bold',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    {summary?.total_transactions || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+          
+          {/* Statement Controls */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, letterSpacing: '0.2px' }}>
+              Statement History
+            </Typography>
+            <Box>
+              <Tooltip title="Refresh">
+                <IconButton onClick={fetchStatementData} size="small" sx={{ mr: 1 }}>
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Filter">
+                <IconButton onClick={() => setOpenFilters(true)} size="small" sx={{ mr: 1 }}>
+                  <FilterListIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Export as CSV">
+                <IconButton onClick={exportAsCSV} size="small">
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+          
+          {statements.length === 0 && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              mb: 2, 
+              p: 1, 
+              borderRadius: '8px', 
+              bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(66, 66, 66, 0.2)' : 'rgba(0, 0, 0, 0.03)',
+              border: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, letterSpacing: '0.1px' }}>
+                No statement data available yet. Your transaction history will appear here.
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Statement Table */}
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              mt: 2, 
+              borderRadius: '10px',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+              overflow: 'auto',
+              maxWidth: '100%',
+              ml: -1 // Shift table to the left
+            }}
+          >
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+              <TableHead>
+                <TableRow sx={{ 
+                  bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                  '& th': { 
+                    fontWeight: 600,
+                    letterSpacing: '0.5px',
+                    borderBottom: '2px solid',
+                    borderColor: 'divider',
+                    padding: '6px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.75rem'
+                  }
+                }}>
+                  <TableCell sx={{ width: '30px' }}>ID</TableCell>
+                  <TableCell sx={{ width: '70px' }}>Date</TableCell>
+                  <TableCell sx={{ width: '80px' }}>User</TableCell>
+                  <TableCell sx={{ width: '100px' }}>Email</TableCell>
+                  <TableCell sx={{ width: '70px' }}>Type</TableCell>
+                  <TableCell sx={{ width: '100px' }}>Description</TableCell>
+                  <TableCell sx={{ width: '50px' }}>Ref ID</TableCell>
+                  <TableCell align="right" sx={{ width: '60px' }}>Credit</TableCell>
+                  <TableCell align="right" sx={{ width: '60px' }}>Debit</TableCell>
+                  <TableCell align="right" sx={{ width: '70px' }}>Purchase</TableCell>
+                  <TableCell align="right" sx={{ width: '70px' }}>Opening</TableCell>
+                  <TableCell align="right" sx={{ width: '70px' }}>Closing</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {statements.length > 0 ? (
+                  statements.map((statement) => (
+                    <TableRow 
+                      key={statement.id}
+                      sx={{ 
+                        '&:hover': { 
+                          bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)'
+                        },
+                        transition: 'background-color 0.2s ease',
+                        '& td': {
+                          padding: '6px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '150px',
+                          fontSize: '0.75rem'
+                        }
+                      }}
+                    >
+                      <TableCell>{statement.id}</TableCell>
+                      <TableCell>{formatDate(statement.timestamp)}</TableCell>
+                      <TableCell>{statement.username}</TableCell>
+                      <TableCell>{statement.email}</TableCell>
+                      <TableCell>{getTransactionTypeChip(statement.transaction_type)}</TableCell>
+                      <TableCell>{statement.description}</TableCell>
+                      <TableCell>{statement.reference_id || '-'}</TableCell>
+                      <TableCell align="right" sx={{
+                        color: statement.credit > 0 ? 'success.main' : 'text.primary',
+                        fontWeight: statement.credit > 0 ? 'bold' : 'normal'
+                      }}>
+                        {statement.credit > 0 ? `+${statement.credit.toFixed(2)}` : '0.00'}
+                      </TableCell>
+                      <TableCell align="right" sx={{
+                        color: statement.debit > 0 ? 'error.main' : 'text.primary',
+                        fontWeight: statement.debit > 0 ? 'bold' : 'normal'
+                      }}>
+                        {statement.debit > 0 ? `-${statement.debit.toFixed(2)}` : '0.00'}
+                      </TableCell>
+                      <TableCell align="right">
+                        {statement.purchase_amount > 0 ? statement.purchase_amount.toFixed(2) : '0.00'}
+                      </TableCell>
+                      <TableCell align="right">
+                        {statement.opening_balance.toFixed(2)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'medium' }}>
+                        {statement.closing_balance.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  // Display empty table rows when no data is available
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index} sx={{ 
+                      height: '36px',
+                      '& td': {
+                        padding: '6px',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.75rem'
+                      }
+                    }}>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '30px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '70px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '80px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '100px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '70px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '100px' }}>-</TableCell>
+                      <TableCell sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '50px' }}>-</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '60px' }}>-</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '60px' }}>-</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '70px' }}>-</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '70px' }}>-</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: index === 4 ? 0 : '1px solid', borderColor: 'divider', width: '70px' }}>-</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {/* Filter Dialog */}
+          <Dialog open={openFilters} onClose={() => setOpenFilters(false)} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>Filter Statement History</Typography>
+                <IconButton onClick={() => setOpenFilters(false)} size="small">
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            
+            <DialogContent>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel id="period-label">Time Period</InputLabel>
+                    <Select
+                      labelId="period-label"
+                      value={period}
+                      label="Time Period"
+                      onChange={(e) => setPeriod(e.target.value)}
+                    >
+                      <MenuItem value="week">Last 7 Days</MenuItem>
+                      <MenuItem value="month">Last 30 Days</MenuItem>
+                      <MenuItem value="year">Last 365 Days</MenuItem>
+                      <MenuItem value="all">All Time</MenuItem>
+                      <MenuItem value="custom">Custom Range</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                {period === 'custom' && (
+                  <>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Start Date"
+                        type="date"
+                        fullWidth
+                        value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value) : null;
+                          setStartDate(date);
+                        }}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                          }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="End Date"
+                        type="date"
+                        fullWidth
+                        value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value) : null;
+                          setEndDate(date);
+                        }}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                          }
+                        }}
+                      />
+                    </Grid>
+                  </>
+                )}
+                
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel id="type-label">Transaction Type</InputLabel>
+                    <Select
+                      labelId="type-label"
+                      value={transactionType}
+                      label="Transaction Type"
+                      onChange={(e) => setTransactionType(e.target.value)}
+                    >
+                      <MenuItem value="all">All Transactions</MenuItem>
+                      <MenuItem value="purchase">Purchases Only</MenuItem>
+                      <MenuItem value="usage">Usage Only</MenuItem>
+                      <MenuItem value="refund">Refunds Only</MenuItem>
+                      <MenuItem value="admin_adjustment">Admin Adjustments Only</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            
+            <DialogActions>
+              <Button onClick={resetFilters} color="inherit">
+                Reset
+              </Button>
+              <Button onClick={applyFilters} variant="contained">
+                Apply Filters
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
+    </Box>
+  );
+};
+
+export default StatementHistory;
