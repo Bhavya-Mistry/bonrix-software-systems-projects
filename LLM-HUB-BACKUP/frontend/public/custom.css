@@ -1,0 +1,44 @@
+/* Hide the 99+ notification badge in the toolbar */
+div.MuiToolbar-root span.notranslate:not(.credit-badge .MuiBadge-badge),
+div.MuiToolbar-root div[data-badge="99+"],
+div.MuiToolbar-root button[aria-label="notifications"],
+div.MuiToolbar-root .MuiBadge-root:not(.credit-badge),
+div.MuiToolbar-root img[alt*="notification"],
+.notification-badge,
+.MuiBadge-badge[data-badge="99+"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+/* Make sure the credits badge remains visible */
+.credit-badge .MuiBadge-badge {
+  display: flex !important;
+}
+
+/* Fix for app bar title visibility */
+.MuiAppBar-root .MuiToolbar-root > h6,
+.MuiAppBar-root .MuiToolbar-root > a,
+.MuiAppBar-root .MuiToolbar-root > span,
+.MuiAppBar-root .MuiToolbar-root > div > span,
+.MuiAppBar-root .MuiToolbar-root > div > h6 {
+  color: white !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Direct fix for LLM HUB title */
+.MuiAppBar-root .MuiToolbar-root:first-child {
+  color: white !important;
+}
+
+/* Fix for all text in app bar */
+.MuiAppBar-root * {
+  color: white !important;
+}
