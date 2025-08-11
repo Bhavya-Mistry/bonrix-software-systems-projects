@@ -69,19 +69,25 @@ async def summarize_text(
         db.add(task_log)
         db.commit()
         
-        # Convert the structured result into a plain text string
-        summary = result.get("summary", "")
-        key_points = result.get("key_points", [])
-        
-        # Prepare the plain string output
-        result_str = f"Summary:\n{summary}\n\nKey Points:\n"
-        if key_points:
-            result_str += "\n".join([f"- {point}" for point in key_points])
-        else:
-            result_str += "No key points available."
-        
         # Format the response
-        return result
+        response = {
+            "task": "Text Summarization",
+            "model": model,
+            "estimated_tokens": estimated_tokens,
+            "credits_used": credit_cost,
+            "time_taken_sec": time_taken,
+            "result": {
+                "summary": result.get("summary", ""),
+                "structured_data": {
+                    "key_points": result.get("key_points", []),
+                    "original_length": len(text),
+                    "summary_length": len(result.get("summary", "")),
+                    "compression_ratio": len(result.get("summary", "")) / max(len(text), 1) * 100
+                }
+            }
+        }
+        
+        return response
         
     except Exception as e:
         raise HTTPException(

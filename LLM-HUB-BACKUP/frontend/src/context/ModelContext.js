@@ -32,14 +32,14 @@ export const ModelProvider = ({ children }) => {
       { id: 'mistral-7b', name: 'Mistral 7B', description: 'Lightweight model' }
     ],
     Gemini: [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Google Gemini: Fast, efficient, and multimodal' }
+      { id: 'gemini-2.5-pro', name: 'gemini 2.5 pro', description: 'Google Gemini: Fast, efficient, and multimodal' }
     ],
     LLaMA: [
       { id: 'llama2', name: 'LLaMA 2', description: 'Open source model' },
       { id: 'llama3', name: 'LLaMA 3', description: 'Latest open source model' }
     ],
     Gemini: [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Google Gemini: Fast, efficient, and multimodal' }
+      { id: 'gemini-2.5-pro', name: 'gemini 2.5 pro', description: 'Google Gemini: Fast, efficient, and multimodal' }
     ]
   };
 

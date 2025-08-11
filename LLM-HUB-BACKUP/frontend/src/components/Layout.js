@@ -42,7 +42,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 // Drawer width
-const drawerWidth = 240;
+const drawerWidth = 240 ;
 
 const Layout = () => {
   const { theme, toggleTheme } = useTheme();
@@ -53,9 +53,25 @@ const Layout = () => {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   
   // State for drawer and user menu
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [pageLoaded, setPageLoaded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Effect to handle scroll and apply styles to AppBar
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    document.addEventListener('scroll', handleScroll);
+    return () => {
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrolled]);
   
   // Add animation delay when page loads
   useEffect(() => {
@@ -119,7 +135,8 @@ const Layout = () => {
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center',
-          my: 2,
+          mt: 0,  // Remove top margin
+          mb: 1,  // Reduce bottom margin
           px: 2
         }}>
           <Avatar 
@@ -144,11 +161,11 @@ const Layout = () => {
             {user?.email || ''}
           </Typography>
           <Box sx={{ 
-            mt: 1, 
+            mt: 0.5,  // Reduce top margin
             display: 'flex', 
             alignItems: 'center',
-            p: 1,
-            borderRadius: 2,
+            p: 0.8,  // Slightly reduce padding
+            borderRadius: 1.5,  // Slightly smaller border radius
             bgcolor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
           }}>
             <WalletIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
@@ -265,14 +282,33 @@ const Layout = () => {
       {/* App Bar */}
       <AppBar 
         position="fixed" 
-        elevation={0}
-        sx={{ 
+        elevation={scrolled ? 4 : 2} // More elevation when floating
+        sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          background: theme === 'dark' 
-            ? 'linear-gradient(90deg, #303f9f 0%, #5c6bc0 100%)'
-            : 'linear-gradient(90deg, #3f51b5 0%, #5c6bc0 100%)',
-          backdropFilter: 'blur(8px)',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.4s ease-in-out',
+          backdropFilter: 'blur(10px)',
+          // Conditional styles based on scroll state
+          ...(!scrolled
+            ? {
+                // Initial state: full-width, sharp rectangle
+                width: '100%',
+                borderRadius: '0px !important', // Forcing sharp corners
+                top: 0,
+                mx: 0,
+                background: theme === 'dark' 
+                  ? '#121212'
+                  : '#f5f5f5',
+              }
+            : {
+                // Scrolled state: floating, rounded
+                top: '10px',
+                width: 'calc(100% - 32px)',
+                borderRadius: '16px',
+                mx: '16px',
+                background: theme === 'dark' 
+                  ? 'rgba(50, 50, 50, 0.8)' 
+                  : 'rgba(245, 245, 245, 0.8)',
+              }),
         }}
       >
         <Toolbar>
@@ -305,7 +341,11 @@ const Layout = () => {
             }}
           >
             <Fade in={pageLoaded} timeout={800}>
-              <Box component="span">
+              <Box 
+                component="span" 
+                onClick={() => navigate('/dashboard')}
+                sx={{ cursor: 'pointer' }}
+              >
                 AI-TOOLKIT
               </Box>
             </Fade>
@@ -465,23 +505,40 @@ const Layout = () => {
       
       {/* Drawer */}
       <Drawer
-        variant={isMobile ? "temporary" : "persistent"}
+        variant="temporary"
         open={drawerOpen}
         onClose={handleDrawerToggle}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
             boxSizing: 'border-box',
             border: 'none',
-            backgroundImage: theme === 'dark' 
-              ? 'linear-gradient(180deg, rgba(30, 60, 114, 0.05) 0%, rgba(42, 82, 152, 0) 100%)'
-              : 'none',
-            boxShadow: theme === 'dark' 
-              ? '2px 0 20px rgba(0, 0, 0, 0.3)' 
-              : '2px 0 20px rgba(0, 0, 0, 0.05)',
-            transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+            overflow: 'hidden',
+            transition: 'all 0.4s ease-in-out',
+            ...(!scrolled
+              ? {
+                  // Initial state: full-height, sharp rectangle
+                  width: drawerWidth,
+                  height: '100%',
+                  top: 0,
+                  left: 0,
+                  borderRadius: 0,
+                  boxShadow: 'none',
+                  background: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+                }
+              : {
+                  // Scrolled state: floating, rounded
+                  width: drawerWidth,
+                  height: 'calc(100vh - 20px)',
+                  top: '10px',
+                  left: '16px', // Align with navbar's 16px margin
+                  borderRadius: '16px',
+                  boxShadow: theme === 'dark'
+                    ? '0 8px 24px rgba(0,0,0,0.3)'
+                    : '0 8px 24px rgba(0,0,0,0.1)',
+                  background: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+                }),
           },
         }}
       >
@@ -493,9 +550,12 @@ const Layout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)` },
-          ml: { md: drawerOpen ? `${drawerWidth}px` : 0 },
+          p: 0,  // Remove all padding
+          pt: 3, // Add back only top padding
+          pr: 3, // Add back right padding
+          pb: 3, // Add back bottom padding
+          width: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)`,
+          ml: `${drawerOpen ? drawerWidth : 0}px`,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative',
           minHeight: '100vh',
@@ -506,11 +566,13 @@ const Layout = () => {
       >
         <Toolbar /> {/* Spacer to push content below app bar */}
         <Fade in={pageLoaded} timeout={800}>
-          <Container 
-            maxWidth="lg" 
-            sx={{ 
-              mt: 4, 
+          <Container
+            maxWidth="lg"
+            disableGutters
+            sx={{
+              mt: 4,
               mb: 4,
+              px: drawerOpen ? 0 : 2,
               position: 'relative',
               zIndex: 1,
             }}

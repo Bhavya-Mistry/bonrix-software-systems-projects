@@ -106,7 +106,8 @@ const TextSummarization = () => {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
+            'Content-Type': 'multipart/form-data',
+            ...(user?.access_token ? { 'Authorization': `Bearer ${user.access_token}` } : {})
           }
         }
       );
@@ -140,36 +141,105 @@ const TextSummarization = () => {
         </Alert>
       )}
       
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            {/* Text Input */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>
-                Text to Summarize
+      {/* Model and Cost Boxes above text input */}
+      {/* Model & Cost Section - Resume Analysis Style */}
+      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Grid container spacing={3}>
+          {/* AI Model */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              AI Model
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '56px', borderRadius: 2 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body1">
+                  {modelDetails?.name || model}
+                </Typography>
+                <Chip 
+                  label={modelDetails?.provider || 'AI'} 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                />
+              </Box>
+            </Paper>
+          </Grid>
+          {/* Estimated Credits */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              Estimated Cost
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', maxHeight: '56px', borderRadius: 2 }}
+            >
+              <Typography variant="h6" color="primary">
+                {estimatedCredits} credits
               </Typography>
-              
+            </Paper>
+          </Grid>
+        </Grid>
+      </Paper>
+      <form onSubmit={handleSubmit}>
+      {/* Main Form Section */}
+      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={12}>
+            <Box
+              sx={{
+                border: '2px dashed',
+                borderColor: 'divider',
+                borderRadius: 3,
+                backgroundColor: 'background.paper',
+                p: 5,
+                mb: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 220,
+                transition: 'border-color 0.3s',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  backgroundColor: 'action.hover',
+                },
+              }}
+            >
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 1, color: 'text.primary' }}>
+                Paste or type your text here
+              </Typography>
               <TextField
                 multiline
-                rows={10}
+                minRows={8}
+                maxRows={16}
                 fullWidth
-                variant="outlined"
-                placeholder="Paste your text here..."
                 value={text}
                 onChange={handleTextChange}
+                variant="standard"
+                placeholder="Paste or type your long-form text here..."
+                InputProps={{
+                  disableUnderline: true,
+                  style: { fontSize: 16, lineHeight: 1.5, background: 'transparent', color: 'text.primary' }
+                }}
+                sx={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  width: '100%',
+                  mb: 0,
+                  mt: 0
+                }}
                 disabled={loading}
               />
-              
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
+              {/* Text Stats */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
                   {wordCount} words, {charCount} characters
                 </Typography>
-                
                 {text.length > 0 && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '200px' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ mr: 1, minWidth: '80px' }}>
-                      Ideal length:
-                    </Typography>
+                  <Box sx={{ width: 120 }}>
                     <LinearProgress
                       variant="determinate"
                       value={Math.min(text.length / 2000 * 100, 100)}
@@ -179,61 +249,11 @@ const TextSummarization = () => {
                   </Box>
                 )}
               </Box>
-            </Grid>
-            
-            {/* Selected Model */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                AI Model
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body1">
-                    {modelDetails?.name || model}
-                  </Typography>
-                  <Chip 
-                    label={modelDetails?.provider || 'AI'} 
-                    size="small" 
-                    color="primary" 
-                    variant="outlined"
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-            
-            {/* Estimated Credits */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Estimated Cost
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Typography variant="h6" color="primary">
-                  {estimatedCredits} credits
-                </Typography>
-              </Paper>
-            </Grid>
+            </Box>
+
+          </Grid>
+
+
             
             {/* Submit Button */}
             <Grid item xs={12}>
@@ -256,8 +276,8 @@ const TextSummarization = () => {
               </Box>
             </Grid>
           </Grid>
-        </form>
       </Paper>
+      </form>
       
       {/* Results */}
       {result && <ResultCard result={result} />}
@@ -279,6 +299,7 @@ const TextSummarization = () => {
         </Typography>
       </Paper>
     </Box>
+    // </Box>
   );
 };
 

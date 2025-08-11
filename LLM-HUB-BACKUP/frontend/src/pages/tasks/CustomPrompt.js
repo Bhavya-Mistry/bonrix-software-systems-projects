@@ -17,13 +17,14 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useModel } from '../../context/ModelContext';
 import ResultCard from '../../components/ResultCard';
+import ModelSettings from '../../components/ModelSettings';
 
 // API URL from environment variable
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const CustomPrompt = () => {
   const { user, updateUserCredits } = useAuth();
-  const { getSelectedModelForTask, getModelDetails } = useModel();
+  const { getSelectedModelForTask, getModelDetails, setSelectedModelForTask } = useModel();
   
   // Get the selected model for this task
   const model = getSelectedModelForTask('custom_prompt');
@@ -41,6 +42,8 @@ const CustomPrompt = () => {
   
   // Estimated credits
   const [estimatedCredits, setEstimatedCredits] = useState(3);
+  // Model selection modal state
+  const [modelModalOpen, setModelModalOpen] = useState(false);
   
   // Handle prompt change
   const handlePromptChange = (e) => {
@@ -96,7 +99,8 @@ const CustomPrompt = () => {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
+            'Content-Type': 'multipart/form-data',
+            ...(user?.access_token ? { 'Authorization': `Bearer ${user.access_token}` } : {})
           }
         }
       );
@@ -162,6 +166,86 @@ const CustomPrompt = () => {
         </Alert>
       )}
       
+      {/* AI Model and Estimated Cost summary box */}
+      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Grid container spacing={3}>
+          {/* AI Model */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              AI Model
+            </Typography>
+            <Paper
+  variant="outlined"
+  sx={{
+    p: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    maxHeight: '56px',
+    borderRadius: 2,
+    cursor: 'pointer',
+    transition: 'box-shadow 0.2s',
+    '&:hover': {
+      boxShadow: 4,
+      background: 'rgba(33,150,243,0.05)'
+    }
+  }}
+  onClick={() => setModelModalOpen(true)}
+  tabIndex={0}
+  aria-label="Select AI Model"
+>
+  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Typography variant="body1">
+      {modelDetails?.name || model}
+    </Typography>
+      {/* Dropdown arrow icon for model selection */}
+      <Box
+        component="span"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          ml: 1,
+          width: 24,
+          height: 24,
+          justifyContent: 'center',
+          color: 'primary.main',
+          borderRadius: '50%',
+          transition: 'background 0.2s',
+          '&:hover': {
+            background: 'rgba(33,150,243,0.09)'
+          }
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </Box>
+  </Box>
+</Paper>
+<ModelSettings
+  open={modelModalOpen}
+  onClose={() => setModelModalOpen(false)}
+  taskType="custom_prompt"
+/>
+
+          </Grid>
+          {/* Estimated Credits */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              Estimated Cost
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', maxHeight: '56px', borderRadius: 2 }}
+            >
+              <Typography variant="h6" color="primary">
+                {estimatedCredits} credits
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Paper>
+
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
@@ -245,59 +329,9 @@ const CustomPrompt = () => {
               )}
             </Grid>
             
-            {/* Selected Model */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                AI Model
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body1">
-                    {modelDetails?.name || model}
-                  </Typography>
-                  <Chip 
-                    label={modelDetails?.provider || 'AI'} 
-                    size="small" 
-                    color="primary" 
-                    variant="outlined"
-                  />
-                </Box>
-              </Paper>
-            </Grid>
+
             
-            {/* Estimated Credits */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Estimated Cost
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Typography variant="h6" color="primary">
-                  {estimatedCredits} credits
-                </Typography>
-              </Paper>
-            </Grid>
+
             
             {/* Submit Button */}
             <Grid item xs={12}>

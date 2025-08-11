@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -9,7 +10,7 @@ from utils.auth import get_current_user
 from models.database import User, TaskLog
 from services.llm_service import get_llm_service
 from services.credit_service import deduct_credits, estimate_token_usage
-from services.ocr_service import extract_text_from_image
+
 
 router = APIRouter(
     prefix="/api/invoice-extraction",
@@ -40,14 +41,15 @@ async def extract_invoice_data(
         # Start timing
         start_time = time.time()
         
-        # Extract text using OCR
-        extracted_text = extract_text_from_image(file_content, file.filename)
-        
-        # Get the appropriate LLM service for parsing
+        # Use Gemini's multimodal API to analyze the invoice image directly
         llm_service = get_llm_service(model)
-        
-        # Parse the extracted text using LLM
-        parsed_result = llm_service.parse_invoice(extracted_text)
+        if hasattr(llm_service, "analyze_image"):
+            parsed_result = llm_service.analyze_image(file_content)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Selected model does not support direct image analysis. Please use a Gemini model."
+            )
         
         # Calculate time taken
         time_taken = time.time() - start_time

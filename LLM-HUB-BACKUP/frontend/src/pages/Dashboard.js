@@ -736,7 +736,7 @@ const Dashboard = () => {
           </TableContainer>
           
           {transactions.length > 0 && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, color: 'text.primary' }}>
               <Typography variant="h6" gutterBottom>Summary</Typography>
               <Divider sx={{ mb: 2 }} />
               <Grid container spacing={2}>

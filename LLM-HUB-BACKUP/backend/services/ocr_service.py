@@ -8,24 +8,40 @@ import tempfile
 
 # Configure pytesseract path (for Windows)
 # In a production environment, you would install Tesseract and set the path in environment variables
-pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_PATH", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_PATH", r"E:/TESSERACT-OCR/tesseract.exe")
 
 def extract_text_from_image(file_content: bytes, filename: str) -> str:
     """
-    Extract text from an image or PDF file using OCR.
-    
-    Args:
-        file_content: File content as bytes
-        filename: Original filename with extension
-        
-    Returns:
-        Extracted text
+    Extract text from an image or PDF file.
+    For PDFs: use pdfplumber to extract text directly (no OCR).
+    For images: use pytesseract OCR.
     """
+    import pdfplumber
+    from PIL import Image
+    import io
+
     # Check if the file is a PDF
     if filename.lower().endswith('.pdf'):
-        return extract_text_from_pdf(file_content)
+        try:
+            with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    text += page.extract_text() or ""  # Avoid None
+                    text += "\n\n"
+            return text.strip()
+        except Exception as e:
+            error_msg = f"[ERROR] Exception during PDF text extraction: {str(e)}"
+            print(error_msg)
+            return error_msg
     else:
-        return extract_text_from_image_file(file_content)
+        try:
+            image = Image.open(io.BytesIO(file_content))
+            text = pytesseract.image_to_string(image)
+            return text
+        except Exception as e:
+            error_msg = f"[ERROR] Exception during image OCR: {str(e)}"
+            print(error_msg)
+            return error_msg
 
 def extract_text_from_image_file(image_content: bytes) -> str:
     """
@@ -61,7 +77,7 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
         pdf_content: PDF content as bytes
         
     Returns:
-        Extracted text
+        Extracted text or error info
     """
     try:
         # Create a temporary file to save the PDF
@@ -71,25 +87,27 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
         
         # Convert PDF to images
         images = pdf2image.convert_from_path(temp_pdf_path)
+        num_images = len(images)
+        print(f"PDF to image conversion: {num_images} pages found.")
         
         # Extract text from each image
         extracted_text = ""
-        for image in images:
-            # Convert to RGB if needed
+        for idx, image in enumerate(images):
             if image.mode != 'RGB':
                 image = image.convert('RGB')
-            
-            # Extract text using pytesseract
             page_text = pytesseract.image_to_string(image)
-            extracted_text += page_text + "\n\n"
+            extracted_text += f"\n--- PAGE {idx+1} ---\n" + page_text + "\n\n"
         
         # Clean up the temporary file
         os.unlink(temp_pdf_path)
         
+        if not extracted_text.strip():
+            return f"[ERROR] No text extracted. PDF had {num_images} pages."
         return extracted_text
     except Exception as e:
-        print(f"Error extracting text from PDF: {str(e)}")
-        return ""
+        error_msg = f"[ERROR] Exception during PDF OCR: {str(e)}"
+        print(error_msg)
+        return error_msg
 
 # Mock implementation for testing without actual Tesseract installation
 def mock_extract_text_from_image(file_content: bytes, filename: str) -> str:
@@ -134,5 +152,7 @@ def mock_extract_text_from_image(file_content: bytes, filename: str) -> str:
     Thank you for your business!
     """
 
-# Use the real implementation for actual OCR
-extract_text_from_image = extract_text_from_image
+# Use the actual implementation for production
+# In a production environment, you would use the actual implementation
+# Comment out the mock assignment below
+# extract_text_from_image = mock_extract_text_from_image

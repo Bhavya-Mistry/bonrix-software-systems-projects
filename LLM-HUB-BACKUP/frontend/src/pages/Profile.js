@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,7 +16,7 @@ import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/i
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -37,6 +37,14 @@ const Profile = () => {
     });
   };
 
+  // Sync form data when user context updates
+  useEffect(() => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || ''
+    });
+  }, [user]);
+
   // Toggle edit mode
   const toggleEdit = () => {
     if (editing) {
@@ -56,20 +64,24 @@ const Profile = () => {
     setLoading(true);
     
     try {
-      // This would be an API call to update the user profile
-      // For now, we'll just simulate a successful update
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setNotification({
-        open: true,
-        message: 'Profile updated successfully',
-        severity: 'success'
+      const response = await updateProfile({
+        name: formData.name,
+        email: formData.email
       });
-      setEditing(false);
+      if (response.success) {
+        setNotification({
+          open: true,
+          message: 'Profile updated successfully',
+          severity: 'success'
+        });
+        setEditing(false);
+      } else {
+        throw new Error(response.message);
+      }
     } catch (error) {
       setNotification({
         open: true,
-        message: 'Failed to update profile',
+        message: error.message || 'Failed to update profile',
         severity: 'error'
       });
     } finally {

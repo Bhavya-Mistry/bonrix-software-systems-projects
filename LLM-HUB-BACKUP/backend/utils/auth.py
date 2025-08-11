@@ -48,29 +48,32 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Get the current user from the JWT token."""
+    import os
+    import sys
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+    print("[AUTH DEBUG] Incoming token:", token, file=sys.stderr)
+    print("[AUTH DEBUG] SECRET_KEY (first 8 chars):", str(SECRET_KEY)[:8], file=sys.stderr)
     try:
         # Decode the JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
-        
+        print("[AUTH DEBUG] Decoded payload:", payload, file=sys.stderr)
         if user_id is None:
+            print("[AUTH DEBUG] No user_id in payload", file=sys.stderr)
             raise credentials_exception
-            
-    except JWTError:
+    except JWTError as e:
+        print(f"[AUTH DEBUG] JWTError: {e}", file=sys.stderr)
         raise credentials_exception
-        
     # Get the user from the database
     user = db.query(User).filter(User.id == user_id).first()
-    
     if user is None:
+        print("[AUTH DEBUG] No user found in DB for user_id:", user_id, file=sys.stderr)
         raise credentials_exception
-        
+    print("[AUTH DEBUG] Authenticated user:", user.email if hasattr(user, 'email') else user.id, file=sys.stderr)
     return user
 
 def get_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

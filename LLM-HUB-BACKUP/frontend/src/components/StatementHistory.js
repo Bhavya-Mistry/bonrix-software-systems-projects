@@ -481,7 +481,7 @@ const StatementHistory = () => {
                 sx={{ 
                   mr: 1, 
                   borderRadius: '30px',
-                  background: 'linear-gradient(45deg, #FF6B98 30%, #5B9BD5 90%)',
+                  background: 'linear-gradient(45deg, #1976D2 30%, #5B9BD5 90%)',
                   boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
                   color: 'white',
                   fontWeight: 'bold',
@@ -638,7 +638,7 @@ const StatementHistory = () => {
                                 sx={{ 
                                   mt: 2, 
                                   borderRadius: '30px',
-                                  background: 'linear-gradient(45deg, #FF6B98 30%, #5B9BD5 90%)',
+                                  background: 'linear-gradient(45deg, #1976D2 30%, #5B9BD5 90%)',
                                   boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
                                   color: 'white',
                                   fontWeight: 'bold',

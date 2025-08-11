@@ -104,7 +104,8 @@ const InvoiceExtraction = () => {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
+            'Content-Type': 'multipart/form-data',
+            ...(user?.access_token ? { 'Authorization': `Bearer ${user.access_token}` } : {})
           }
         }
       );
@@ -150,6 +151,50 @@ const InvoiceExtraction = () => {
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
+            {/* Model & Cost Section (ResumeAnalysis style) */}
+            <Grid item xs={12}>
+              <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+                <Grid container spacing={3}>
+                  {/* AI Model */}
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      AI Model
+                    </Typography>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '56px', borderRadius: 2 }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body1">
+                          {modelDetails?.name || model}
+                        </Typography>
+                        <Chip 
+                          label={modelDetails?.provider || 'Gemini'} 
+                          size="small" 
+                          color="primary" 
+                          variant="outlined"
+                        />
+                      </Box>
+                    </Paper>
+                  </Grid>
+                  {/* Estimated Credits */}
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Estimated Cost
+                    </Typography>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', maxHeight: '56px', borderRadius: 2 }}
+                    >
+                      <Typography variant="h6" color="primary">
+                        {estimatedCredits} credits
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+
             {/* Invoice Upload */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" gutterBottom>
@@ -208,61 +253,7 @@ const InvoiceExtraction = () => {
                 )}
               </Box>
             </Grid>
-            
-            {/* Selected Model */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                AI Model
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body1">
-                    {modelDetails?.name || model}
-                  </Typography>
-                  <Chip 
-                    label={modelDetails?.provider || 'AI'} 
-                    size="small" 
-                    color="primary" 
-                    variant="outlined"
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-            
-            {/* Estimated Credits */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Estimated Cost
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Typography variant="h6" color="primary">
-                  {estimatedCredits} credits
-                </Typography>
-              </Paper>
-            </Grid>
-            
+
             {/* Submit Button */}
             <Grid item xs={12}>
               <Divider sx={{ mb: 2 }} />

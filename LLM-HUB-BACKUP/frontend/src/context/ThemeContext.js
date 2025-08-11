@@ -116,7 +116,7 @@ export const ThemeProvider = ({ children }) => {
               height: '6px',
             },
             '&::-webkit-scrollbar-track': {
-              background: theme === 'dark' ? '#1E293B' : '#F1F5F9',
+              background: theme === 'dark' ? '#1E293B' : '#1E293B',
             },
             '&::-webkit-scrollbar-thumb': {
               background: theme === 'dark' ? '#475569' : '#CBD5E1',

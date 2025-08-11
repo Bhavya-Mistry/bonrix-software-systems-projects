@@ -131,6 +131,45 @@ async def get_user_profile(current_user: User = Depends(get_current_user)):
         "created_at": current_user.created_at
     }
 
+# Update current user profile
+@app.put("/users/me")
+async def update_user_profile(
+    name: str = Form(None),
+    email: str = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update the authenticated user's profile (name, email, etc.).
+
+    Accepts multipart/form-data so that the frontend can send a FormData object.
+    Only provided fields are updated.
+    """
+    # Ensure at least one change was requested
+    if name is None and email is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+
+    # Check email uniqueness if it's being changed
+    if email and email != current_user.email:
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+        current_user.email = email
+
+    # Update name if provided
+    if name:
+        current_user.name = name
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "credits": current_user.credits,
+        "created_at": current_user.created_at
+    }
+
 # Get user transaction history
 @app.get("/users/transactions")
 async def get_user_transactions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

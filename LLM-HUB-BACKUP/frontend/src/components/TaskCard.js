@@ -102,25 +102,25 @@ const TaskCard = ({ title, description, taskType, route, index = 0 }) => {
                   variant="h6" 
                   gutterBottom
                   sx={{ 
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    mb: 1.5,
-                    color: isDark ? '#fff' : 'inherit',
-                    transition: 'transform 0.3s ease',
-                    transform: isHovered ? 'translateX(5px)' : 'translateX(0)',
-                  }}
+  fontWeight: 600,
+  display: 'flex',
+  alignItems: 'center',
+  mb: 1.5,
+  color: isDark ? '#fff' : 'text.primary',
+  transition: 'transform 0.3s ease',
+  transform: isHovered ? 'translateX(5px)' : 'translateX(0)',
+}}
                 >
                   {title}
                   <ArrowIcon 
                     sx={{ 
-                      ml: 1, 
-                      opacity: isHovered ? 1 : 0, 
-                      transform: isHovered ? 'translateX(0)' : 'translateX(-10px)',
-                      transition: 'opacity 0.3s ease, transform 0.3s ease',
-                      fontSize: '0.9em',
-                      color: muiTheme.palette.primary.main
-                    }} 
+  ml: 1, 
+  opacity: isHovered ? 1 : 0, 
+  transform: isHovered ? 'translateX(0)' : 'translateX(-10px)',
+  transition: 'opacity 0.3s ease, transform 0.3s ease',
+  fontSize: '0.9em',
+  color: isDark ? '#fff' : 'text.primary'
+}} 
                   />
                 </Typography>
                 <Typography 
@@ -162,7 +162,7 @@ const TaskCard = ({ title, description, taskType, route, index = 0 }) => {
               >
                 <SettingsIcon 
                   fontSize="small" 
-                  sx={{ color: isDark ? '#fff' : 'rgba(0, 0, 0, 0.7)' }} 
+                  sx={{ color: 'text.primary' }} 
                 />
               </IconButton>
             </Tooltip>

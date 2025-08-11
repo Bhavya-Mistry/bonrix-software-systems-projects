@@ -44,6 +44,7 @@ import {
 import axios from 'axios';
 import { useTheme } from '../../context/ThemeContext';
 
+
 // API URL from environment variable
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -59,11 +60,27 @@ const AdminLayout = ({ children }) => {
   useSessionTimeout();
   
   // State
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [adminInfo, setAdminInfo] = useState(null);
   const [sessionTimeoutDialog, setSessionTimeoutDialog] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Effect to handle scroll and apply styles
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    document.addEventListener('scroll', handleScroll);
+    return () => {
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrolled]);
   
   // Check if admin is authenticated
   useEffect(() => {
@@ -173,9 +190,26 @@ const AdminLayout = ({ children }) => {
       {/* App Bar */}
       <AppBar
         position="fixed"
+        elevation={scrolled ? 4 : 2}
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: theme === 'dark' ? '#1e1e1e' : 'primary.main',
+          transition: 'all 0.4s ease-in-out',
+          backdropFilter: 'blur(10px)',
+          ...(!scrolled
+            ? {
+                width: '100%',
+                borderRadius: '0px !important', // Forcing sharp corners
+                top: 0,
+                mx: 0,
+                background: theme === 'dark' ? '#121212' : '#f5f5f5',
+              }
+            : {
+                top: '10px',
+                width: 'calc(100% - 32px)',
+                borderRadius: '16px',
+                mx: '16px',
+                background: theme === 'dark' ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+              }),
         }}
       >
         <Toolbar>
@@ -184,19 +218,22 @@ const AdminLayout = ({ children }) => {
             aria-label="open drawer"
             edge="start"
             onClick={toggleDrawer}
-            sx={{ mr: 2 }}
+            sx={{ 
+              mr: 2,
+              transition: 'transform 0.3s ease',
+              '&:hover': {
+                transform: 'rotate(90deg)'
+              } 
+            }}
           >
-            {open ? <ChevronLeftIcon /> : <MenuIcon />}
+            <MenuIcon />
           </IconButton>
           
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ flexGrow: 1 }}
-          >
-            Windsurf Admin Dashboard
-          </Typography>
+          <Box sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => navigate('/admin-dashboard')}>
+            <Typography variant="h6" noWrap component="div">
+              Windsurf Admin Dashboard
+            </Typography>
+          </Box>
           
           {adminInfo && (
             <Box sx={{ flexGrow: 0 }}>
@@ -245,15 +282,38 @@ const AdminLayout = ({ children }) => {
       
       {/* Drawer */}
       <Drawer
-        variant="persistent"
+        variant="temporary"
         open={open}
+        onClose={toggleDrawer}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
             boxSizing: 'border-box',
-            backgroundColor: theme === 'dark' ? '#121212' : 'background.paper',
+            border: 'none',
+            overflow: 'hidden',
+            transition: 'all 0.4s ease-in-out',
+            ...(!scrolled
+              ? {
+                  width: drawerWidth,
+                  height: '100%',
+                  top: 0,
+                  left: 0,
+                  borderRadius: 0,
+                  boxShadow: 'none',
+                  background: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+                }
+              : {
+                  width: drawerWidth,
+                  height: 'calc(100vh - 20px)',
+                  top: '10px',
+                  left: '16px',
+                  borderRadius: '16px',
+                  boxShadow: theme === 'dark'
+                    ? '0 8px 24px rgba(0,0,0,0.3)'
+                    : '0 8px 24px rgba(0,0,0,0.1)',
+                  background: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+                }),
           },
         }}
       >
@@ -297,12 +357,9 @@ const AdminLayout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${open ? drawerWidth : 0}px)` },
-          ml: { sm: `${open ? drawerWidth : 0}px` },
-          transition: (theme) => theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
+          width: '100%',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minHeight: '100vh',
         }}
       >
         <Toolbar />

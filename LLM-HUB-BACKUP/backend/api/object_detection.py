@@ -40,15 +40,26 @@ async def detect_objects_in_image(
         # Start timing
         start_time = time.time()
         
-        # Process the image with YOLOv8
-        detection_result = detect_objects(image_content)
-        
-        # Get the appropriate LLM service for captioning
-        llm_service = get_llm_service(model)
-        
-        # Generate caption using LLM
-        caption_result = llm_service.generate_image_caption(detection_result)
-        
+        # Route detection and captioning to the correct service/model
+        detection_result = None
+        caption_result = None
+        used_model = model
+        # If Gemini or other LLM vision model, use its own detection/captioning
+        if model.startswith("gemini"):
+            llm_service = get_llm_service(model)
+            # GeminiService should support direct image analysis
+            detection_caption = llm_service.analyze_image(image_content)
+            detection_result = {
+                "objects": detection_caption.get("objects", []),
+                "counts": detection_caption.get("counts", {}),
+            }
+            caption_result = {"caption": detection_caption.get("summary", ""), "tokens_used": detection_caption.get("tokens_used", 0)}
+            used_model = detection_caption.get("model", model)
+        else:
+            # Use local detection (YOLO/FasterRCNN)
+            detection_result = detect_objects(image_content)
+            llm_service = get_llm_service(model)
+            caption_result = llm_service.generate_image_caption(detection_result)
         # Combine results
         result = {
             "objects": detection_result["objects"],
@@ -86,7 +97,7 @@ async def detect_objects_in_image(
         # Format the response
         response = {
             "task": "Object Detection",
-            "model": model,
+            "model": used_model,
             "estimated_tokens": estimated_tokens,
             "credits_used": credit_cost,
             "time_taken_sec": time_taken,
@@ -98,7 +109,6 @@ async def detect_objects_in_image(
                 }
             }
         }
-        
         return response
         
     except Exception as e:

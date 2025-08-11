@@ -156,6 +156,36 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
   
+  // Update user profile (name, email, etc.)
+  const updateProfile = async (profileData) => {
+    try {
+      setError(null);
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication token not found');
+
+      // Set auth header (already set at login, but ensure here)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Create form data to support multipart/form-data backend expectation
+      const formData = new FormData();
+      Object.entries(profileData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
+      // Send request to update profile
+      const response = await axios.put(`${API_URL}/users/me`, formData);
+
+      // Update local user state with fresh data from backend
+      setUser(response.data);
+      return { success: true };
+    } catch (err) {
+      console.error('Update profile error:', err);
+      let errorMessage = err.response?.data?.detail || 'Failed to update profile.';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  };
+
   // Update user credits
   const updateUserCredits = (newCredits) => {
     if (user) {
@@ -175,6 +205,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateProfile,
     updateUserCredits
   };
   

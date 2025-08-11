@@ -77,6 +77,7 @@ const SentimentAnalysis = () => {
     
     // Clear previous errors and results
     setError('');
+    setResult(null);
     setLoading(true);
     
     try {
@@ -91,7 +92,8 @@ const SentimentAnalysis = () => {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
+            'Content-Type': 'multipart/form-data',
+            ...(user?.access_token ? { 'Authorization': `Bearer ${user.access_token}` } : {})
           }
         }
       );
@@ -143,18 +145,86 @@ Absolutely love this device! It's changed my life and I use it every day. Best p
       </Typography>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3, color: 'text.primary' }}>
           {error}
         </Alert>
       )}
       
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+      {/* Model & Cost Section - Match Text Summarization Style */}
+      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 3, backgroundColor: 'background.paper' }}>
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          {/* AI Model */}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
+              AI Model
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                maxHeight: '56px',
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                boxShadow: 'none',
+                border: `2px solid`,
+                borderColor: 'divider',
+                mb: 0
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                  {modelDetails?.name || model}
+                </Typography>
+                <Chip
+                  label={modelDetails?.provider || 'AI'}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontWeight: 600, color: 'text.primary' }}
+                />
+              </Box>
+            </Paper>
+          </Box>
+          {/* Estimated Credits */}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
+              Estimated Cost
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                maxHeight: '56px',
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                boxShadow: 'none',
+                border: `2px solid`,
+                borderColor: 'divider',
+                mb: 0
+              }}
+            >
+              <Typography variant="h6" color="primary" sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
+                {estimatedCredits} credits
+              </Typography>
+            </Paper>
+          </Box>
+        </Box>
+      </Paper>
+      <Paper elevation={2} sx={{ p: 3, mb: 4, backgroundColor: 'background.paper' }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Reviews Input */}
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="subtitle1">
+                <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>
                   Reviews to Analyze
                 </Typography>
                 
@@ -163,96 +233,82 @@ Absolutely love this device! It's changed my life and I use it every day. Best p
                   variant="outlined" 
                   onClick={handleUseExample}
                   disabled={loading}
+                  sx={{ color: 'text.primary' }}
                 >
                   Use Example
                 </Button>
               </Box>
               
-              <TextField
-                multiline
-                rows={10}
-                fullWidth
-                variant="outlined"
-                placeholder="Paste your reviews here, one per line..."
-                value={reviews}
-                onChange={handleReviewsChange}
-                disabled={loading}
-              />
-              
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
-                  {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}, {charCount} characters
+              <Box
+                sx={{
+                  border: '2px dashed',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  backgroundColor: 'background.paper',
+                  p: 5,
+                  mb: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 220,
+                  transition: 'border-color 0.3s',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 1, color: 'text.primary' }}>
+                  Paste or type your reviews here
                 </Typography>
-                
+                <TextField
+                  multiline
+                  minRows={8}
+                  maxRows={16}
+                  fullWidth
+                  value={reviews}
+                  onChange={handleReviewsChange}
+                  variant="standard"
+                  placeholder="Paste your reviews here, one per line..."
+                  InputProps={{
+                    disableUnderline: true,
+                    style: { fontSize: 16, lineHeight: 1.5, background: 'transparent', color: 'text.primary' }
+                  }}
+                  sx={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    width: '100%',
+                    mb: 0,
+                    mt: 0,
+                    color: 'text.primary'
+                  }}
+                  disabled={loading}
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ color: 'text.primary' }}>
+                    {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}, {charCount} characters
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Chip 
                     label="Bulk Analysis" 
                     size="small" 
                     color="primary" 
                     variant={reviewCount > 1 ? "filled" : "outlined"}
+                    sx={{ color: 'text.primary' }}
                   />
                   <Chip 
                     label="Single Review" 
                     size="small" 
                     color="primary" 
                     variant={reviewCount === 1 ? "filled" : "outlined"}
+                    sx={{ color: 'text.primary' }}
                   />
                 </Box>
               </Box>
-            </Grid>
-            
-            {/* Selected Model */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                AI Model
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body1">
-                    {modelDetails?.name || model}
-                  </Typography>
-                  <Chip 
-                    label={modelDetails?.provider || 'AI'} 
-                    size="small" 
-                    color="primary" 
-                    variant="outlined"
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-            
-            {/* Estimated Credits */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Estimated Cost
-              </Typography>
-              
-              <Paper
-                variant="outlined"
-                sx={{ 
-                  p: 2, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  maxHeight: '56px'
-                }}
-              >
-                <Typography variant="h6" color="primary">
-                  {estimatedCredits} credits
-                </Typography>
-              </Paper>
             </Grid>
             
             {/* Submit Button */}
@@ -260,7 +316,7 @@ Absolutely love this device! It's changed my life and I use it every day. Best p
               <Divider sx={{ mb: 2 }} />
               
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ color: 'text.primary' }}>
                   Your balance: {user?.credits.toFixed(0)} credits
                 </Typography>
                 
@@ -270,6 +326,7 @@ Absolutely love this device! It's changed my life and I use it every day. Best p
                   size="large"
                   disabled={loading || !reviews.trim() || reviews.length < 50}
                   startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+                  sx={{ color: 'text.primary' }}
                 >
                   {loading ? 'Analyzing...' : 'Analyze Sentiment'}
                 </Button>
@@ -283,12 +340,12 @@ Absolutely love this device! It's changed my life and I use it every day. Best p
       {result && <ResultCard result={result} />}
       
       {/* Information */}
-      <Paper elevation={1} sx={{ p: 3, mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper elevation={1} sx={{ p: 3, mt: 4, backgroundColor: 'background.paper' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: 'text.primary' }}>
           About Sentiment Analysis
         </Typography>
         <Divider sx={{ mb: 2 }} />
-        <Typography variant="body2" paragraph>
+        <Typography variant="body2" paragraph sx={{ color: 'text.primary' }}>
           Our Sentiment Analysis tool uses AI to analyze the sentiment in customer reviews, social media posts, survey responses, and other text feedback.
         </Typography>
         <Typography variant="body2" paragraph>

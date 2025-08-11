@@ -2,14 +2,14 @@
 
 /* Color Variables */
 :root {
-  --strawberry-pink: #FF6B98;
+  --strawberry-pink: #1976D2;
   --light-pink: #FFC2D1;
   --blue-primary: #5B9BD5;
   --blue-secondary: #8CC7F4;
   --dark-blue: #2E5984;
   --light-gray: #F8F9FA;
   --medium-gray: #E9ECEF;
-  --dark-gray: #343A40;
+  /* --dark-gray: #343A40; */
 }
 
 /* App Bar */
@@ -45,7 +45,7 @@
 
 /* Dark mode app bar */
 body.dark-mode .MuiAppBar-root {
-  background: linear-gradient(135deg, #FF6B98, #5B9BD5) !important;
+  background: linear-gradient(135deg, #1976D2, #5B9BD5) !important;
   border-bottom: none !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
@@ -72,7 +72,7 @@ body.dark-mode .MuiAppBar-root {
   left: 0 !important;
   width: 100% !important;
   height: 4px !important;
-  background: linear-gradient(to right, var(--strawberry-pink), var(--blue-primary)) !important;
+  /* background: linear-gradient(to right, var(--strawberry-pink), var(--blue-primary)) !important; */
 }
 
 /* Dark mode cards */
@@ -157,7 +157,7 @@ h1, h2, h3, h4, h5, h6, .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3,
 }
 
 .MuiTypography-root {
-  color: var(--dark-gray) !important;
+  /* color: var(--dark-gray) !important; */
 }
 
 .MuiTypography-h5, .MuiTypography-h6 {
