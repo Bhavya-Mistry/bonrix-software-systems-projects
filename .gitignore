@@ -27,3 +27,44 @@ LLM-HUB-BACKUP/frontend/dist/
 .vscode/
 .idea/
 *.swp
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- OS / Misc ----
+.DS_Store
+Thumbs.db
+
+# ---- Project Data ----
+# Ignore generated indexes and metadata
+data/faiss.index
+data/id_map.csv
+data/products.sqlite
+data/images/
+
+# ---- Logs / Temp ----
+*.log
+logs/
+tmp/
+
