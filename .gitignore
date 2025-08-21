@@ -71,3 +71,46 @@ data/images/
 logs/
 tmp/
 
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- OS / Misc ----
+.DS_Store
+Thumbs.db
+
+# ---- Project Data ----
+# Ignore generated files
+/data/faiss.index
+/data/id_map.csv
+/data/products.sqlite
+
+# Ignore ALL images in data/images
+/data/images/*
+
+
+# ---- Logs / Temp ----
+*.log
+logs/
+tmp/
