@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jewelry Image Search</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Jewelry Image Search</h1>
+        <p class="subtitle">Upload an image to find similar items from our collection.</p>
+
+        <div class="main-content">
+            <div class="upload-panel">
+                <h3>Upload Image</h3>
+                <div id="drop-zone" class="drop-zone">
+                    <input type="file" id="image-input" accept="image/*" class="file-input" title="Image Upload">
+                    <div class="drop-zone-prompt">
+                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p><strong>Drag & drop</strong> an image here, or click to select</p>
+                        <span id="file-name" class="file-name">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <h3>Search Controls</h3>
+                <div class="slider-container">
+                    <label for="quantity-slider">Number of Results</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="quantity-slider" min="1" max="10" value="5">
+                        <span id="quantity-value" class="slider-value">5</span>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <label for="accuracy-slider">Search Accuracy</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="accuracy-slider" min="1" max="100" value="90">
+                        <span id="accuracy-value" class="slider-value">90%</span>
+                    </div>
+                </div>
+                <button id="search-button">Search Similar Images</button>
+            </div>
+        </div>
+
+        <div id="results-container" class="results-grid">
+            <!-- Search results will be displayed here -->
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
