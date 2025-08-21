@@ -1,1 +1,1 @@
-# bonrix-ai-toolkit
+# Internship Projects
