@@ -121,6 +121,20 @@ tmp/
 
 /jewelry_image_search/zipfiles/
 /jewelry_image_search/data
+!/jewelry_image_search/data.gitkeep
 
 
 **/node_modules/
+
+**/build/
+
+/housenumber/dist/*
+
+/housenumber/WhatsApp_Sender_Distribution/*
+
+
+/housenumber/uploads
+!/housenumber/uploads.gitkeep
+
+/housenumber/success
+!/housenumber/success.gitkeep
