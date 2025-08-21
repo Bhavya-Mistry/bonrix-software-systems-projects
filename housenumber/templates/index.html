@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF WhatsApp Processor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* ---------------------------------- */
+        /*          Core Color & Font         */
+        /* ---------------------------------- */
+        :root {
+            --primary-color: #4A6A8A;
+            --primary-hover: #3E5A76;
+            --light-gray: #f8f9fa;
+            --medium-gray: #dee2e6;
+            --dark-charcoal: #212529;
+            --muted-text: #6c757d;
+            --white: #ffffff;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #fd7e14;
+        }
+
+        body {
+            background-color: var(--light-gray);
+            color: var(--dark-charcoal);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ---------------------------------- */
+        /*              Navbar                */
+        /* ---------------------------------- */
+        .navbar {
+            background-color: var(--dark-charcoal) !important;
+            border-bottom: 1px solid var(--medium-gray);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--white) !important;
+        }
+
+        .navbar-brand i {
+            color: var(--primary-color);
+        }
+
+        .scanning-indicator {
+            color: var(--success-color);
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .scanning-indicator.active {
+            display: inline-block;
+        }
+
+        .scanning-indicator i {
+            color: var(--success-color);
+        }
+
+        /* ---------------------------------- */
+        /*          Main Control Panel        */
+        /* ---------------------------------- */
+        .control-panel {
+            background: var(--white);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--medium-gray);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .control-panel h4 {
+            font-weight: 600;
+            color: var(--dark-charcoal);
+        }
+
+        .form-label {
+            color: var(--dark-charcoal);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border: 1px solid var(--medium-gray);
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(74, 106, 138, 0.25);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.4;
+        }
+
+        textarea.form-control::placeholder {
+            color: var(--muted-text);
+            opacity: 0.7;
+        }
+
+        /* ---------------------------------- */
+        /*        File Upload Area            */
+        /* ---------------------------------- */
+        .file-upload-area {
+            border: 2px dashed var(--medium-gray);
+            border-radius: 0.5rem;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            background-color: var(--light-gray);
+            color: var(--muted-text);
+        }
+
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: #f0f3f6;
+            color: var(--primary-color);
+        }
+
+        .file-upload-area i {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-area p {
+            color: var(--muted-text);
+            margin-bottom: 1rem;
+        }
+
+        .excel-status {
+            display: none;
+        }
+
+        .excel-status.show {
+            display: block;
+        }
+
+        /* ---------------------------------- */
+        /*        Action Buttons              */
+        /* ---------------------------------- */
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+            padding: 0.625rem 1.25rem;
+            transition: all 0.2s ease-in-out;
+            border: none;
+        }
+
+        .btn-success {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-success:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background-color: #8c959d;
+            border-color: #8c959d;
+            color: var(--white);
+        }
+        .btn-danger:hover {
+            background-color: #79828a;
+            border-color: #79828a;
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        /* ---------------------------------- */
+        /*          Statistics Cards          */
+        /* ---------------------------------- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-card {
+            background-color: var(--white);
+            border: 1px solid var(--medium-gray);
+            border-radius: 0.75rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid transparent;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .stats-card .card-body {
+            padding: 1.25rem;
+        }
+
+        .stats-card .card-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--muted-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-card h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Individual card colors */
+        .stats-processed {
+            border-left-color: var(--primary-color);
+        }
+        .stats-processed h2 {
+            color: var(--primary-color) !important;
+        }
+
+        .stats-success {
+            border-left-color: var(--success-color);
+        }
+        .stats-success h2 {
+            color: var(--success-color) !important;
+        }
+
+        .stats-failed {
+            border-left-color: var(--danger-color);
+        }
+        .stats-failed h2 {
+            color: var(--danger-color) !important;
+        }
+
+        .stats-retry {
+            border-left-color: var(--warning-color);
+        }
+        .stats-retry h2 {
+            color: var(--warning-color) !important;
+        }
+
+        /* ---------------------------------- */
+        /*       Processing Status Table      */
+        /* ---------------------------------- */
+        .table-container {
+            background-color: var(--white);
+            border: 1px solid var(--medium-gray);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: var(--primary-color) !important;
+            color: var(--white) !important;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table > thead {
+            background-color: #f2f4f6;
+            color: var(--muted-text);
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .table th {
+            border-bottom: 2px solid var(--medium-gray);
+            padding: 1rem 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .table td, .table th {
+            vertical-align: middle;
+            border-color: var(--medium-gray);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(74, 106, 138, 0.05);
+        }
+
+        /* Status badges */
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        .status-processing {
+            background-color: #17a2b8;
+            color: var(--white);
+        }
+
+        .status-sent {
+            background-color: var(--success-color);
+            color: var(--white);
+        }
+
+        .status-failed {
+            background-color: var(--danger-color);
+            color: var(--white);
+        }
+
+        /* ---------------------------------- */
+        /*          Helper Classes            */
+        /* ---------------------------------- */
+        .processing-indicator {
+            display: none;
+        }
+
+        .processing-indicator.active {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Alert styling */
+        .alert {
+            border-radius: 0.5rem;
+            border: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        /* Utilities */
+        .text-muted {
+            color: var(--muted-text) !important;
+        }
+
+        .fw-medium {
+            font-weight: 500;
+        }
+
+        .small {
+            font-size: 0.875rem;
+        }
+
+        /* Status Message Area */
+        #statusMessageArea {
+            margin-top: 1rem;
+        }
+
+        #statusMessageArea .alert {
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #statusMessageArea .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        #statusMessageArea .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        #statusMessageArea .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        #statusMessageArea .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .status-timestamp {
+            font-size: 0.8rem;
+            color: var(--muted-text);
+            float: right;
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-file-pdf me-2"></i>
+                PDF WhatsApp Processor
+            </a>
+            <div class="scanning-indicator" id="scanningIndicator">
+                <i class="fas fa-sync-alt fa-spin me-2"></i>
+                <span>Scanning for files every 10 seconds...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="row mb-3">
+                <!-- Excel File Upload -->
+                <div class="col-md-6">
+                    <label class="form-label">
+                        <i class="fas fa-file-excel me-1"></i>
+                        Upload Excel File (Flat No & Phone Number)
+                    </label>
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click to select Excel file or drag & drop</p>
+                        <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('excelFile').click()">
+                            <i class="fas fa-folder-open me-1"></i>
+                            Browse Files
+                        </button>
+                    </div>
+                    <div class="excel-status mt-2" id="excelStatus">
+                        <div class="alert alert-success mb-0" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span id="excelStatusText">No file uploaded</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- API Key and Settings -->
+                <div class="col-md-6">
+                    <label for="apiKey" class="form-label">
+                        <i class="fas fa-key me-1"></i>
+                        WhatsApp API Key
+                    </label>
+                    <input type="password" class="form-control mb-3" id="apiKey" 
+                           placeholder="Enter your WhatsApp API key" required>
+                    
+                    <label for="sendDelay" class="form-label">
+                        <i class="fas fa-clock me-1"></i>
+                        Delay Between Files (seconds)
+                    </label>
+                    <input type="number" class="form-control mb-3" id="sendDelay" 
+                           value="10" min="1" max="300" placeholder="10">
+                    <div class="form-text text-muted mt-1">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Delay between sending each file (1-300 seconds)
+                    </div>
+                    
+                    <label for="customMessage" class="form-label">
+                        <i class="fas fa-comment-dots me-1"></i>
+                        Custom Message
+                    </label>
+                    <textarea class="form-control" id="customMessage" rows="2" 
+                              placeholder="Enter your custom message. Use {flat_no} to include flat number automatically.">Monthly statement for Flat {flat_no} is ready. Please find attached invoice and process payment.</textarea>
+                    <div class="form-text text-muted mt-1">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Use {flat_no} anywhere in your message to automatically include the flat number
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <button id="startBtn" class="btn btn-success btn-lg me-3" disabled>
+                        <i class="fas fa-play me-2"></i>
+                        Start Continuous Processing
+                        <div class="spinner-border spinner-border-sm ms-2 processing-indicator" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger btn-lg me-3" disabled>
+                        <i class="fas fa-stop me-2"></i>
+                        Stop Processing
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Current Status Message -->
+            <div class="row mt-3" id="statusMessageArea" style="display: none;">
+                <div class="col-12">
+                    <div class="alert" id="statusAlert" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="statusMessage">Ready to start processing...</span>
+                        <span class="status-timestamp" id="statusTimestamp"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="card stats-card stats-processed">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-file-alt me-1"></i>
+                        Processed
+                    </h5>
+                    <h2 id="processedCount">0</h2>
+                </div>
+            </div>
+            <div class="card stats-card stats-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Sent Successfully
+                    </h5>
+                    <h2 id="successCount">0</h2>
+                </div>
+            </div>
+            <div class="card stats-card stats-failed">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-times-circle me-1"></i>
+                        Failed
+                    </h5>
+                    <h2 id="failedCount">0</h2>
+                </div>
+            </div>
+            <div class="card stats-card stats-retry">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-address-book me-1"></i>
+                        Phone Numbers Loaded
+                    </h5>
+                    <h2 id="phoneCount">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Status Table -->
+        <div class="card mb-4 table-container">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    Current Processing Status
+                    <small class="ms-2">(Files currently being processed)</small>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>File Name</th>
+                                <th>Flat Number</th>
+                                <th>Phone Number</th>
+                                <th>Status</th>
+                                <th>Message</th>
+                                <th>Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Upload Excel file and start processing to see file status here.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // DOM elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const apiKeyInput = document.getElementById('apiKey');
+        const sendDelayInput = document.getElementById('sendDelay');
+        const customMessageInput = document.getElementById('customMessage');
+        const excelFileInput = document.getElementById('excelFile');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const excelStatus = document.getElementById('excelStatus');
+        const excelStatusText = document.getElementById('excelStatusText');
+        const statusTableBody = document.getElementById('statusTableBody');
+        const scanningIndicator = document.getElementById('scanningIndicator');
+        const statusMessageArea = document.getElementById('statusMessageArea');
+        const statusAlert = document.getElementById('statusAlert');
+        const statusMessage = document.getElementById('statusMessage');
+        const statusTimestamp = document.getElementById('statusTimestamp');
+        
+        // Statistics elements
+        const processedCount = document.getElementById('processedCount');
+        const successCount = document.getElementById('successCount');
+        const failedCount = document.getElementById('failedCount');
+        const phoneCount = document.getElementById('phoneCount');
+        
+        let isProcessing = false;
+        let excelFilePath = '';
+        let statusPollInterval = null;
+        
+        // Event listeners
+        startBtn.addEventListener('click', startProcessing);
+        stopBtn.addEventListener('click', stopProcessing);
+        excelFileInput.addEventListener('change', handleFileUpload);
+        apiKeyInput.addEventListener('input', updateStartButtonState);
+        
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', handleDragOver);
+        fileUploadArea.addEventListener('dragleave', handleDragLeave);
+        fileUploadArea.addEventListener('drop', handleDrop);
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                    excelFileInput.files = files;
+                    handleFileUpload();
+                } else {
+                    showAlert('Please upload a valid Excel file (.xlsx or .xls)', 'warning');
+                }
+            }
+        }
+        
+        function handleFileUpload() {
+            const file = excelFileInput.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('excel_file', file);
+            
+            // Show uploading status
+            excelStatusText.textContent = 'Uploading file...';
+            excelStatus.classList.add('show');
+            
+            fetch('/upload_excel', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    excelFilePath = data.filepath;
+                    excelStatusText.textContent = `✓ ${file.name} - ${data.phone_count} phone numbers loaded`;
+                    phoneCount.textContent = data.phone_count;
+                    updateStartButtonState();
+                    
+                    // Reset alert to success state
+                    excelStatus.querySelector('.alert').className = 'alert alert-success mb-0';
+                } else {
+                    excelStatusText.textContent = `✗ Error: ${data.message}`;
+                    excelStatus.querySelector('.alert').className = 'alert alert-danger mb-0';
+                }
+                excelStatus.classList.add('show');
+            })
+            .catch(error => {
+                excelStatusText.textContent = `✗ Upload failed: ${error.message}`;
+                excelStatus.querySelector('.alert').className = 'alert alert-danger mb-0';
+                excelStatus.classList.add('show');
+            });
+        }
+        
+        function updateStartButtonState() {
+            const hasApiKey = apiKeyInput.value.trim().length > 0;
+            const hasExcelFile = excelFilePath.length > 0;
+            
+            startBtn.disabled = !hasApiKey || !hasExcelFile || isProcessing;
+        }
+        
+        function startProcessing() {
+            const apiKey = apiKeyInput.value.trim();
+            const customMessage = customMessageInput.value.trim();
+            const sendDelay = parseInt(sendDelayInput.value) || 10;
+            
+            if (!apiKey) {
+                showAlert('Please enter your API key', 'warning');
+                apiKeyInput.focus();
+                return;
+            }
+            
+            if (!excelFilePath) {
+                showAlert('Please upload an Excel file first', 'warning');
+                return;
+            }
+            
+            if (sendDelay < 1 || sendDelay > 300) {
+                showAlert('Send delay must be between 1 and 300 seconds', 'warning');
+                sendDelayInput.focus();
+                return;
+            }
+            
+            fetch('/start_processing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    api_key: apiKey,
+                    excel_filepath: excelFilePath,
+                    custom_message: customMessage,
+                    send_delay: sendDelay
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    isProcessing = true;
+                    updateButtonStates();
+                    scanningIndicator.classList.add('active');
+                    
+                    // Start polling for status updates
+                    startStatusPolling();
+                    
+                    showAlert('Processing started successfully!', 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('Error starting processing: ' + error.message, 'danger');
+            });
+        }
+        
+        function stopProcessing() {
+            fetch('/stop_processing', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                isProcessing = false;
+                updateButtonStates();
+                scanningIndicator.classList.remove('active');
+                
+                // Stop polling
+                stopStatusPolling();
+                
+                showAlert('Processing stopped', 'warning');
+            })
+            .catch(error => {
+                showAlert('Error stopping processing: ' + error.message, 'danger');
+            });
+        }
+        
+        function updateButtonStates() {
+            if (isProcessing) {
+                startBtn.disabled = true;
+                startBtn.querySelector('.processing-indicator').classList.add('active');
+                stopBtn.disabled = false;
+                apiKeyInput.disabled = true;
+                sendDelayInput.disabled = true;
+                customMessageInput.disabled = true;
+                excelFileInput.disabled = true;
+            } else {
+                updateStartButtonState();
+                startBtn.querySelector('.processing-indicator').classList.remove('active');
+                stopBtn.disabled = true;
+                apiKeyInput.disabled = false;
+                sendDelayInput.disabled = false;
+                customMessageInput.disabled = false;
+                excelFileInput.disabled = false;
+            }
+        }
+        
+        function startStatusPolling() {
+            // Poll every 2 seconds when processing
+            statusPollInterval = setInterval(loadStatus, 2000);
+        }
+        
+        function stopStatusPolling() {
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+                statusPollInterval = null;
+            }
+        }
+        
+        function displayLatestStatusMessage(messages) {
+            if (!messages || messages.length === 0) {
+                return;
+            }
+            
+            // Get the latest message (last in array)
+            const latestMessage = messages[messages.length - 1];
+            
+            // Map message types to alert classes and icons
+            const alertConfig = {
+                'info': { class: 'alert-info', icon: 'fa-info-circle' },
+                'success': { class: 'alert-success', icon: 'fa-check-circle' },
+                'warning': { class: 'alert-warning', icon: 'fa-exclamation-triangle' },
+                'error': { class: 'alert-danger', icon: 'fa-times-circle' }
+            };
+            
+            const config = alertConfig[latestMessage.type] || alertConfig['info'];
+            
+            // Update status message area
+            statusAlert.className = `alert ${config.class}`;
+            statusAlert.querySelector('i').className = `fas ${config.icon} me-2`;
+            statusMessage.textContent = latestMessage.message;
+            
+            // Format and display timestamp
+            const time = new Date(latestMessage.timestamp).toLocaleTimeString();
+            statusTimestamp.textContent = time;
+            
+            // Show the status message area
+            statusMessageArea.style.display = 'block';
+            
+            // Auto-hide info messages after 10 seconds, but keep warnings, errors, and countdown messages visible longer
+            if (latestMessage.type === 'info' && 
+                !latestMessage.message.includes('Will stop processing in') && 
+                !latestMessage.message.includes('Auto-stop in')) {
+                setTimeout(() => {
+                    if (statusAlert.classList.contains('alert-info')) {
+                        statusMessageArea.style.display = 'none';
+                    }
+                }, 10000);
+            } else if (latestMessage.type === 'warning' || 
+                       latestMessage.message.includes('Auto-stop in') || 
+                       latestMessage.message.includes('Processing stopped')) {
+                // Keep warnings, countdown messages, and processing stopped messages visible - don't auto-hide
+            }
+        }
+        
+        function updateStatistics(stats) {
+            processedCount.textContent = stats.processed || 0;
+            successCount.textContent = stats.success || 0;
+            failedCount.textContent = stats.failed || 0;
+        }
+        
+        function updateStatusTable(fileStatus) {
+            if (!fileStatus || Object.keys(fileStatus).length === 0) {
+                statusTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-clock me-2"></i>
+                            Waiting for files to process...
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            const tbody = statusTableBody;
+            tbody.innerHTML = '';
+            
+            Object.entries(fileStatus).forEach(([filename, status]) => {
+                const row = createStatusRow(filename, status);
+                tbody.appendChild(row);
+            });
+        }
+        
+        function createStatusRow(filename, status) {
+            const row = document.createElement('tr');
+            
+            const statusClass = {
+                'Processing': 'status-processing',
+                'Sent': 'status-sent',
+                'Failed': 'status-failed'
+            }[status.status] || 'status-processing';
+            
+            const timestamp = status.timestamp ? 
+                new Date(status.timestamp).toLocaleTimeString() : '';
+            
+            // Create action button based on status
+            let actionButton = '-';
+            if (status.status === 'Sent') {
+                actionButton = `
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary btn-sm" onclick="viewFile('${filename}')" title="View PDF in Browser">
+                            <i class="fas fa-eye me-1"></i>View
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="downloadFile('${filename}')" title="Download PDF">
+                            <i class="fas fa-download me-1"></i>
+                        </button>
+                    </div>
+                `;
+            } else if (status.status === 'Processing') {
+                actionButton = `
+                    <span class="text-muted">
+                        <i class="fas fa-spinner fa-spin me-1"></i>Processing...
+                    </span>
+                `;
+            }
+            
+            row.innerHTML = `
+                <td class="fw-medium">${filename}</td>
+                <td>${status.flat_no || '-'}</td>
+                <td>${status.phone || '-'}</td>
+                <td>
+                    <span class="badge ${statusClass} status-badge">
+                        ${status.status}
+                    </span>
+                </td>
+                <td class="small">${status.message || '-'}</td>
+                <td class="small text-muted">${timestamp}</td>
+                <td class="text-center">${actionButton}</td>
+            `;
+            
+            if (status.status === 'Processing') {
+                row.classList.add('animate-pulse');
+            }
+            
+            return row;
+        }
+        
+        function viewFile(filename) {
+            // Open PDF for viewing in browser (inline)
+            const fileUrl = `/view_file/${encodeURIComponent(filename)}`;
+            window.open(fileUrl, '_blank');
+        }
+        
+        function downloadFile(filename) {
+            // Use dedicated download endpoint
+            const downloadUrl = `/download_file/${encodeURIComponent(filename)}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.control-panel'));
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        // Load initial status and start polling
+        function loadStatus() {
+            fetch('/get_status')
+                .then(response => response.json())
+                .then(data => {
+                    isProcessing = data.is_processing;
+                    updateButtonStates();
+                    updateStatistics(data.stats);
+                    updateStatusTable(data.file_status);
+                    
+                    if (data.phone_numbers_loaded > 0) {
+                        phoneCount.textContent = data.phone_numbers_loaded;
+                    }
+                    
+                    if (isProcessing) {
+                        scanningIndicator.classList.add('active');
+                        if (!statusPollInterval) {
+                            startStatusPolling();
+                        }
+                    } else {
+                        scanningIndicator.classList.remove('active');
+                        stopStatusPolling();
+                    }
+                    
+                    // Display latest status message
+                    if (data.messages && data.messages.length > 0) {
+                        displayLatestStatusMessage(data.messages);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading status:', error);
+                });
+        }
+        
+        // Load status on page load
+        loadStatus();
+        
+        // Refresh status every 30 seconds when not actively processing
+        setInterval(() => {
+            if (!statusPollInterval) {
+                loadStatus();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

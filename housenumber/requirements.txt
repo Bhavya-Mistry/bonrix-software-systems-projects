@@ -1,0 +1,8 @@
+Flask
+Flask-SocketIO
+pandas
+pdfplumber
+requests
+openpyxl
+python-dotenv
+eventlet
