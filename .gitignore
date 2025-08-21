@@ -116,3 +116,7 @@ logs/
 tmp/
 
 **/images/**
+# Ignore all images in data/images
+
+
+/jewelry_image_search/zipfiles/
