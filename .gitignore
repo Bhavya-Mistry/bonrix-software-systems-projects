@@ -62,6 +62,9 @@ data/faiss.index
 data/id_map.csv
 data/products.sqlite
 data/images/
+.jpeg
+.png
+.jpg
 
 # ---- Logs / Temp ----
 *.log
