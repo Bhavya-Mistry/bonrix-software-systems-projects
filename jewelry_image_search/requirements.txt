@@ -1,0 +1,21 @@
+# Core
+torch
+torchvision
+numpy
+pillow
+faiss-cpu
+open_clip_torch
+
+# API
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Utils
+pydantic
+matplotlib
+
+#remove bg
+rembg
+onnxruntime
+onnxruntime-gpu
