@@ -24,4 +24,4 @@ Minimal starter for image-to-image similarity search tailored for jewelry catalo
 
 - Start the FastAPI server with **uvicorn app.main:app --reload --port 8000**
 
-- Test the image search with cURL
+- Test the image search with cURL 
