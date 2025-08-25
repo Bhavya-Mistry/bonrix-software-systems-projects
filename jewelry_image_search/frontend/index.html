@@ -170,7 +170,7 @@
             justify-content: center;
         }
 
-        .remove-image {
+        .edit-image, .remove-image {
             padding: 0.5rem 1rem;
             border: none;
             border-radius: 6px;
@@ -178,6 +178,18 @@
             font-size: 0.875rem;
             font-weight: 500;
             transition: all 0.2s ease;
+        }
+
+        .edit-image {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .edit-image:hover {
+            background-color: #0056b3;
+        }
+
+        .remove-image {
             background-color: #dc3545;
             color: white;
         }
@@ -230,6 +242,237 @@
             display: block;
             font-size: 0.875rem;
             color: #6c757d;
+        }
+
+        /* Image Editor Modal */
+        .editor-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .editor-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .editor-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.3s ease;
+        }
+
+        .editor-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .editor-header h3 {
+            margin: 0;
+            color: #495057;
+            border: none;
+            padding: 0;
+        }
+
+        .editor-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+            margin-left: auto;
+        }
+
+        .editor-close:hover {
+            color: #343a40;
+        }
+
+        .editor-body {
+            display: flex;
+            flex: 1;
+            min-height: 500px;
+        }
+
+        .editor-canvas-container {
+            flex: 1;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #f8f9fa;
+        }
+
+        .editor-canvas {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 100%;
+            cursor: crosshair;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            border: 2px solid #007bff;
+            background: rgba(0, 123, 255, 0.1);
+            display: none;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .crop-handles {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #007bff;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        .editor-controls {
+            width: 300px;
+            padding: 1.5rem;
+            background: white;
+            border-left: 1px solid #e9ecef;
+            overflow-y: auto;
+        }
+
+        .editor-section {
+            margin-bottom: 2rem;
+        }
+
+        .editor-section h4 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .editor-slider-group {
+            margin-bottom: 1rem;
+        }
+
+        .editor-slider-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .editor-slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .editor-slider {
+            flex: 1;
+        }
+
+        .editor-slider-value {
+            font-weight: 600;
+            color: #007bff;
+            min-width: 40px;
+            font-size: 0.875rem;
+        }
+
+        .editor-button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .editor-button.primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .editor-button.primary:hover {
+            background-color: #0056b3;
+        }
+
+        .editor-button.secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .editor-button.secondary:hover {
+            background-color: #545b62;
+        }
+
+        .editor-button.danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .editor-button.danger:hover {
+            background-color: #c82333;
+        }
+
+        .editor-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .editor-action-buttons {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 1rem;
+            background: #f8f9fa;
+        }
+
+        .editor-action-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background-color: #545b62;
+        }
+
+        .btn-apply {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-apply:hover {
+            background-color: #218838;
         }
 
         /* Controls Panel */
@@ -524,6 +767,17 @@
                 font-size: 0.9rem;
             }
             
+            .editor-body {
+                flex-direction: column;
+            }
+            
+            .editor-controls {
+                width: 100%;
+                max-height: 300px;
+                border-left: none;
+                border-top: 1px solid #e9ecef;
+            }
+            
             .modal-content {
                 max-width: 95vw;
                 max-height: 90vh;
@@ -566,7 +820,7 @@
         <!-- Search Mode Tabs -->
         <div class="search-tabs">
             <button class="tab-button active" data-tab="image">🖼️ Image Search</button>
-            <button class="tab-button" data-tab="text">📝 Text Search</button>
+            <button class="tab-button" data-tab="text">🔍 Text Search</button>
         </div>
 
         <div class="main-content">
@@ -590,6 +844,7 @@
                                 </div>
                             </div>
                             <div class="preview-controls">
+                                <button id="edit-image" class="edit-image">Edit Image</button>
                                 <button id="remove-image" class="remove-image">Remove</button>
                             </div>
                         </div>
@@ -650,6 +905,71 @@
         </div>
     </div>
 
+    <!-- Image Editor Modal -->
+    <div id="image-editor-modal" class="editor-modal">
+        <div class="editor-content">
+            <div class="editor-header">
+                <h3>Image Editor</h3>
+                <button class="editor-close" id="editor-close-btn">&times;</button>
+            </div>
+            
+            <div class="editor-body">
+                <div class="editor-canvas-container">
+                    <canvas id="editor-canvas" class="editor-canvas"></canvas>
+                    <div id="crop-overlay" class="crop-overlay"></div>
+                </div>
+                
+                <div class="editor-controls">
+                    <!-- Crop Section -->
+                    <div class="editor-section">
+                        <h4>Crop (1:1 Ratio)</h4>
+                        <div id="crop-instruction" class="editor-instruction" style="display: none; font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem;">
+                            Drag on the image to select a square area to crop.
+                        </div>
+                        <button id="crop-toggle" class="editor-button secondary">Start Cropping</button>
+                        <button id="crop-apply" class="editor-button primary" style="display: none;">Apply Crop</button>
+                    </div>
+                    
+                    <!-- Adjustments Section -->
+                    <div class="editor-section">
+                        <h4>Adjustments</h4>
+                        
+                        <div class="editor-slider-group">
+                            <label for="brightness-slider">Brightness</label>
+                            <div class="editor-slider-wrapper">
+                                <input type="range" id="brightness-slider" class="editor-slider" min="-100" max="100" value="0">
+                                <span id="brightness-value" class="editor-slider-value">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="editor-slider-group">
+                            <label for="contrast-slider">Contrast</label>
+                            <div class="editor-slider-wrapper">
+                                <input type="range" id="contrast-slider" class="editor-slider" min="-100" max="100" value="0">
+                                <span id="contrast-value" class="editor-slider-value">0</span>
+                            </div>
+                        </div>
+                        
+
+                    </div>
+                    
+                    <!-- History Section -->
+                    <div class="editor-section">
+                        <h4>Edit History</h4>
+                        <button id="undo-btn" class="editor-button secondary" disabled>Undo</button>
+                        <button id="redo-btn" class="editor-button secondary" disabled>Redo</button>
+                        <button id="reset-btn" class="editor-button danger">Reset to Original</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="editor-action-buttons">
+                <button id="editor-cancel-btn" class="btn-cancel">Cancel</button>
+                <button id="editor-apply-btn" class="btn-apply">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Image Modal -->
     <div id="image-modal" class="modal">
         <div class="modal-content">
@@ -687,9 +1007,31 @@
             const dropZonePrompt = document.getElementById('drop-zone-prompt');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             const imagePreview = document.getElementById('image-preview');
+            const editImageBtn = document.getElementById('edit-image');
             const removeImageBtn = document.getElementById('remove-image');
             const previewFilename = document.getElementById('preview-filename');
             const previewSize = document.getElementById('preview-size');
+
+            // Image editor elements
+            const editorModal = document.getElementById('image-editor-modal');
+            const editorCanvas = document.getElementById('editor-canvas');
+            const editorCloseBtn = document.getElementById('editor-close-btn');
+            const editorCancelBtn = document.getElementById('editor-cancel-btn');
+            const editorApplyBtn = document.getElementById('editor-apply-btn');
+            const cropOverlay = document.getElementById('crop-overlay');
+            
+            // Editor controls
+            const cropToggleBtn = document.getElementById('crop-toggle');
+            const cropApplyBtn = document.getElementById('crop-apply');
+            const cropInstruction = document.getElementById('crop-instruction');
+            const brightnessSlider = document.getElementById('brightness-slider');
+            const brightnessValue = document.getElementById('brightness-value');
+            const contrastSlider = document.getElementById('contrast-slider');
+            const contrastValue = document.getElementById('contrast-value');
+
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            const resetBtn = document.getElementById('reset-btn');
 
             // Modal elements
             const modal = document.getElementById('image-modal');
@@ -703,6 +1045,21 @@
             let currentSearchMode = 'image';
             let currentResults = [];
             let currentImageIndex = 0;
+
+            // Image editor state
+            let editorCtx = null;
+            let originalImageData = null;
+            let editHistory = [];
+            let historyIndex = -1;
+            let isCropping = false;
+            let cropStart = null;
+            let cropEnd = null;
+            let currentEditedBlob = null;
+            let imageRect = null; // Store the actual image bounds within canvas
+            let isMouseDown = false; // Track mouse state
+
+            // Initialize canvas context
+            editorCtx = editorCanvas.getContext('2d');
 
             // Tab switching functionality
             tabButtons.forEach(button => {
@@ -753,7 +1110,7 @@
                 });
             });
 
-            // Image upload functionality (same as before)
+            // Image upload functionality
             imageInput.addEventListener('change', () => handleFiles(imageInput.files));
 
             dropZone.addEventListener('click', (e) => {
@@ -813,6 +1170,7 @@
                 imagePreviewContainer.style.display = 'none';
                 imagePreview.src = '';
                 imagePreview.onclick = null;
+                currentEditedBlob = null;
             }
 
             function formatFileSize(bytes) {
@@ -823,12 +1181,487 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
+            editImageBtn.addEventListener('click', () => {
+                openImageEditor();
+            });
+
             removeImageBtn.addEventListener('click', () => {
                 imageInput.value = '';
                 fileNameSpan.textContent = 'No file chosen';
                 hideImagePreview();
                 resultsContainer.innerHTML = '';
                 currentQueryDiv.style.display = 'none';
+            });
+
+            // Image Editor Functions
+            function openImageEditor() {
+                const img = new Image();
+                img.onload = function() {
+                    // Set canvas size to fit image while maintaining aspect ratio
+                    const maxWidth = 500;
+                    const maxHeight = 400;
+                    let { width, height } = img;
+                    
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+                    
+                    editorCanvas.width = width;
+                    editorCanvas.height = height;
+                    
+                    // Store image bounds for cropping
+                    imageRect = { x: 0, y: 0, width, height };
+                    
+                    // Draw image and store original data
+                    editorCtx.drawImage(img, 0, 0, width, height);
+                    originalImageData = editorCtx.getImageData(0, 0, width, height);
+                    
+                    // Initialize edit history
+                    editHistory = [editorCtx.getImageData(0, 0, width, height)];
+                    historyIndex = 0;
+                    updateHistoryButtons();
+                    
+                    // Reset controls
+                    resetSliders();
+                    
+                    editorModal.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                };
+                img.src = imagePreview.src;
+            }
+
+            function closeImageEditor() {
+                editorModal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+                isCropping = false;
+                cropOverlay.style.display = 'none';
+                cropToggleBtn.textContent = 'Start Cropping';
+                cropToggleBtn.classList.remove('danger');
+                cropToggleBtn.classList.add('secondary');
+                cropApplyBtn.style.display = 'none';
+                cropInstruction.style.display = 'none';
+                editorCanvas.style.cursor = 'default';
+                cropStart = null;
+                cropEnd = null;
+            }
+
+            function resetSliders() {
+                brightnessSlider.value = 0;
+                brightnessValue.textContent = '0';
+                contrastSlider.value = 0;
+                contrastValue.textContent = '0';
+            }
+
+            function saveToHistory() {
+                // Remove any future history if we're not at the end
+                if (historyIndex < editHistory.length - 1) {
+                    editHistory = editHistory.slice(0, historyIndex + 1);
+                }
+                
+                // Add current state
+                const currentImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                editHistory.push(currentImageData);
+                historyIndex++;
+                
+                console.log('Saved to history, index:', historyIndex, 'total history items:', editHistory.length);
+                
+                // Limit history size
+                if (editHistory.length > 20) {
+                    editHistory.shift();
+                    historyIndex--;
+                }
+                
+                updateHistoryButtons();
+            }
+
+            function updateHistoryButtons() {
+                undoBtn.disabled = historyIndex <= 0;
+                redoBtn.disabled = historyIndex >= editHistory.length - 1;
+            }
+
+            function applyFilters() {
+                if (!originalImageData) return;
+                
+                // Start with original image data for cumulative effects
+                const imageData = editorCtx.createImageData(originalImageData);
+                const data = imageData.data;
+                const originalData = originalImageData.data;
+                
+                // Get filter values
+                const brightness = parseInt(brightnessSlider.value);
+                const contrast = parseInt(contrastSlider.value);
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = originalData[i];
+                    let g = originalData[i + 1];
+                    let b = originalData[i + 2];
+                    
+                    // Apply brightness
+                    if (brightness !== 0) {
+                        r = Math.max(0, Math.min(255, r + brightness));
+                        g = Math.max(0, Math.min(255, g + brightness));
+                        b = Math.max(0, Math.min(255, b + brightness));
+                    }
+                    
+                    // Apply contrast
+                    if (contrast !== 0) {
+                        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                        r = Math.max(0, Math.min(255, factor * (r - 128) + 128));
+                        g = Math.max(0, Math.min(255, factor * (g - 128) + 128));
+                        b = Math.max(0, Math.min(255, factor * (b - 128) + 128));
+                    }
+                    
+                    data[i] = r;
+                    data[i + 1] = g;
+                    data[i + 2] = b;
+                    data[i + 3] = originalData[i + 3]; // Keep original alpha
+                }
+                
+                editorCtx.putImageData(imageData, 0, 0);
+            }
+
+
+
+            // Crop functionality
+            cropToggleBtn.addEventListener('click', () => {
+                if (!isCropping) {
+                    isCropping = true;
+                    isMouseDown = false;
+                    cropToggleBtn.textContent = 'Cancel Crop';
+                    cropToggleBtn.classList.remove('secondary');
+                    cropToggleBtn.classList.add('danger');
+                    cropApplyBtn.style.display = 'block';
+                    cropInstruction.style.display = 'block';
+                    editorCanvas.style.cursor = 'crosshair';
+                    
+                    // Clear any existing crop selection
+                    cropStart = null;
+                    cropEnd = null;
+                    cropOverlay.style.display = 'none';
+                    console.log('Crop mode started');
+                } else {
+                    isCropping = false;
+                    isMouseDown = false;
+                    cropToggleBtn.textContent = 'Start Cropping';
+                    cropToggleBtn.classList.remove('danger');
+                    cropToggleBtn.classList.add('secondary');
+                    cropApplyBtn.style.display = 'none';
+                    cropInstruction.style.display = 'none';
+                    cropOverlay.style.display = 'none';
+                    editorCanvas.style.cursor = 'default';
+                    cropStart = null;
+                    cropEnd = null;
+                    console.log('Crop mode cancelled');
+                }
+            });
+
+            cropApplyBtn.addEventListener('click', () => {
+                console.log('Apply crop clicked. Current state:', { 
+                    isCropping, 
+                    cropStart, 
+                    cropEnd,
+                    hasSelection: !!(cropStart && cropEnd)
+                });
+                
+                if (cropStart && cropEnd) {
+                    console.log('Valid selection found, applying crop...');
+                    applyCrop();
+                } else {
+                    console.log('No valid crop selection');
+                    alert('Please select an area to crop first by dragging on the image.');
+                }
+            });
+
+            editorCanvas.addEventListener('mousedown', (e) => {
+                if (!isCropping || !imageRect) return;
+                
+                const rect = editorCanvas.getBoundingClientRect();
+                const scaleX = editorCanvas.width / rect.width;
+                const scaleY = editorCanvas.height / rect.height;
+                
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                console.log('Mouse down at:', { x, y, canvasSize: { w: editorCanvas.width, h: editorCanvas.height } });
+                
+                // Check if click is within image bounds
+                if (x >= imageRect.x && x <= imageRect.x + imageRect.width &&
+                    y >= imageRect.y && y <= imageRect.y + imageRect.height) {
+                    isMouseDown = true;
+                    cropStart = { x: Math.floor(x), y: Math.floor(y) };
+                    cropEnd = null;
+                    cropOverlay.style.display = 'none'; // Hide overlay until we have a selection
+                    console.log('Crop start set:', cropStart);
+                    e.preventDefault();
+                }
+            });
+
+            editorCanvas.addEventListener('mousemove', (e) => {
+                if (!isCropping || !cropStart || !imageRect || !isMouseDown) return;
+                
+                const rect = editorCanvas.getBoundingClientRect();
+                const scaleX = editorCanvas.width / rect.width;
+                const scaleY = editorCanvas.height / rect.height;
+                
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                // Constrain to image bounds
+                const constrainedX = Math.max(imageRect.x, Math.min(imageRect.x + imageRect.width, x));
+                const constrainedY = Math.max(imageRect.y, Math.min(imageRect.y + imageRect.height, y));
+                
+                // Calculate square crop area (1:1 ratio)
+                const deltaX = constrainedX - cropStart.x;
+                const deltaY = constrainedY - cropStart.y;
+                const size = Math.min(Math.abs(deltaX), Math.abs(deltaY));
+                
+                if (size < 5) return; // Minimum size to show overlay
+                
+                // Determine direction and calculate end point
+                const signX = deltaX >= 0 ? 1 : -1;
+                const signY = deltaY >= 0 ? 1 : -1;
+                let endX = cropStart.x + (size * signX);
+                let endY = cropStart.y + (size * signY);
+                
+                // Ensure crop area stays within image bounds
+                endX = Math.max(imageRect.x, Math.min(imageRect.x + imageRect.width, endX));
+                endY = Math.max(imageRect.y, Math.min(imageRect.y + imageRect.height, endY));
+                
+                cropEnd = { x: Math.floor(endX), y: Math.floor(endY) };
+                console.log('Crop selection updated:', { cropStart, cropEnd, size });
+                updateCropOverlay();
+            });
+
+            editorCanvas.addEventListener('mouseup', (e) => {
+                if (!isCropping) return;
+                
+                isMouseDown = false;
+                
+                if (cropStart && cropEnd) {
+                    const width = Math.abs(cropEnd.x - cropStart.x);
+                    const height = Math.abs(cropEnd.y - cropStart.y);
+                    const size = Math.min(width, height);
+                    
+                    console.log('Mouse up - final crop selection:', { cropStart, cropEnd, size });
+                    
+                    if (size < 5) {
+                        // Reset if selection is too small
+                        cropStart = null;
+                        cropEnd = null;
+                        cropOverlay.style.display = 'none';
+                        console.log('Selection too small, reset');
+                    } else {
+                        console.log('Valid crop selection ready for apply');
+                    }
+                } else {
+                    console.log('No valid crop selection on mouse up');
+                }
+            });
+            
+            // Hide crop overlay when clicking outside canvas, but don't reset selection
+            document.addEventListener('mousedown', (e) => {
+                if (isCropping && !editorCanvas.contains(e.target) && !e.target.closest('.editor-controls')) {
+                    isMouseDown = false;
+                    // Don't reset crop selection, just stop dragging
+                }
+            });
+
+            function updateCropOverlay() {
+                if (!cropStart || !cropEnd) {
+                    cropOverlay.style.display = 'none';
+                    return;
+                }
+                
+                const canvasRect = editorCanvas.getBoundingClientRect();
+                const containerRect = editorCanvas.parentElement.getBoundingClientRect();
+                
+                const scaleX = canvasRect.width / editorCanvas.width;
+                const scaleY = canvasRect.height / editorCanvas.height;
+                
+                const left = Math.min(cropStart.x, cropEnd.x) * scaleX;
+                const top = Math.min(cropStart.y, cropEnd.y) * scaleY;
+                const width = Math.abs(cropEnd.x - cropStart.x) * scaleX;
+                const height = Math.abs(cropEnd.y - cropStart.y) * scaleY;
+                
+                // Position relative to canvas within the container
+                const canvasOffsetX = canvasRect.left - containerRect.left;
+                const canvasOffsetY = canvasRect.top - containerRect.top;
+                
+                cropOverlay.style.left = (canvasOffsetX + left) + 'px';
+                cropOverlay.style.top = (canvasOffsetY + top) + 'px';
+                cropOverlay.style.width = width + 'px';
+                cropOverlay.style.height = height + 'px';
+                cropOverlay.style.display = 'block';
+            }
+
+            function applyCrop() {
+                if (!cropStart || !cropEnd) {
+                    console.log('No crop selection found:', { cropStart, cropEnd });
+                    alert('Please make a crop selection first by dragging on the image.');
+                    return;
+                }
+                
+                // Ensure we have integer coordinates
+                const left = Math.floor(Math.min(cropStart.x, cropEnd.x));
+                const top = Math.floor(Math.min(cropStart.y, cropEnd.y));
+                const width = Math.floor(Math.abs(cropEnd.x - cropStart.x));
+                const height = Math.floor(Math.abs(cropEnd.y - cropStart.y));
+                const size = Math.floor(Math.min(width, height)); // Ensure perfect square
+                
+                console.log('Crop selection:', { cropStart, cropEnd, left, top, width, height, size });
+                
+                if (size < 10) {
+                    console.log('Crop area too small:', size);
+                    alert(`Crop area too small (${size}px). Please make a larger selection.`);
+                    return;
+                }
+                
+                // Make sure crop area is within canvas bounds
+                const maxLeft = editorCanvas.width - size;
+                const maxTop = editorCanvas.height - size;
+                const clampedLeft = Math.max(0, Math.min(left, maxLeft));
+                const clampedTop = Math.max(0, Math.min(top, maxTop));
+                
+                console.log('Final crop coordinates:', { 
+                    left: clampedLeft, 
+                    top: clampedTop, 
+                    size, 
+                    canvasWidth: editorCanvas.width, 
+                    canvasHeight: editorCanvas.height 
+                });
+                
+                try {
+                    // First, let's create a new canvas to hold the cropped image
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.width = size;
+                    tempCanvas.height = size;
+                    
+                    // Draw the cropped portion onto the temp canvas
+                    tempCtx.drawImage(editorCanvas, clampedLeft, clampedTop, size, size, 0, 0, size, size);
+                    
+                    console.log('Created temp canvas with cropped image');
+                    
+                    // Now update the main canvas
+                    editorCanvas.width = size;
+                    editorCanvas.height = size;
+                    
+                    // Clear the canvas and draw the cropped image
+                    editorCtx.clearRect(0, 0, size, size);
+                    editorCtx.drawImage(tempCanvas, 0, 0);
+                    
+                    // Update image rect
+                    imageRect = { x: 0, y: 0, width: size, height: size };
+                    
+                    // Update original image data for further edits
+                    originalImageData = editorCtx.getImageData(0, 0, size, size);
+                    
+                    console.log('Successfully applied crop. New canvas size:', size, 'x', size);
+                    
+                    // Save to history
+                    saveToHistory();
+                    
+                } catch (error) {
+                    console.error('Error during crop:', error);
+                    alert('Error applying crop. Please try again.');
+                    return;
+                }
+                
+                // Reset crop mode
+                isCropping = false;
+                cropToggleBtn.textContent = 'Start Cropping';
+                cropToggleBtn.classList.remove('danger');
+                cropToggleBtn.classList.add('secondary');
+                cropApplyBtn.style.display = 'none';
+                cropInstruction.style.display = 'none';
+                cropOverlay.style.display = 'none';
+                editorCanvas.style.cursor = 'default';
+                cropStart = null;
+                cropEnd = null;
+                
+                console.log('Crop completed successfully!');
+            }
+
+            // Slider event listeners
+            brightnessSlider.addEventListener('input', (e) => {
+                brightnessValue.textContent = e.target.value;
+                applyFilters();
+            });
+
+            contrastSlider.addEventListener('input', (e) => {
+                contrastValue.textContent = e.target.value;
+                applyFilters();
+            });
+
+            // History controls
+            undoBtn.addEventListener('click', () => {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    const imageData = editHistory[historyIndex];
+                    editorCtx.putImageData(imageData, 0, 0);
+                    
+                    // Update canvas and image rect if needed
+                    if (editorCanvas.width !== imageData.width || editorCanvas.height !== imageData.height) {
+                        editorCanvas.width = imageData.width;
+                        editorCanvas.height = imageData.height;
+                        imageRect = { x: 0, y: 0, width: imageData.width, height: imageData.height };
+                    }
+                    
+                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    resetSliders();
+                    updateHistoryButtons();
+                }
+            });
+
+            redoBtn.addEventListener('click', () => {
+                if (historyIndex < editHistory.length - 1) {
+                    historyIndex++;
+                    const imageData = editHistory[historyIndex];
+                    editorCtx.putImageData(imageData, 0, 0);
+                    
+                    // Update canvas and image rect if needed  
+                    if (editorCanvas.width !== imageData.width || editorCanvas.height !== imageData.height) {
+                        editorCanvas.width = imageData.width;
+                        editorCanvas.height = imageData.height;
+                        imageRect = { x: 0, y: 0, width: imageData.width, height: imageData.height };
+                    }
+                    
+                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    resetSliders();
+                    updateHistoryButtons();
+                }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                if (editHistory.length > 0) {
+                    editorCtx.putImageData(editHistory[0], 0, 0);
+                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    resetSliders();
+                    historyIndex = 0;
+                    editHistory = [originalImageData];
+                    updateHistoryButtons();
+                }
+            });
+
+            // Editor modal controls
+            editorCloseBtn.addEventListener('click', closeImageEditor);
+            editorCancelBtn.addEventListener('click', closeImageEditor);
+
+            editorApplyBtn.addEventListener('click', () => {
+                // Save current adjustments to history first
+                if (brightnessSlider.value != 0 || contrastSlider.value != 0) {
+                    saveToHistory();
+                }
+                
+                // Convert canvas to blob and update preview
+                editorCanvas.toBlob((blob) => {
+                    currentEditedBlob = blob;
+                    const url = URL.createObjectURL(blob);
+                    imagePreview.src = url;
+                    closeImageEditor();
+                });
             });
 
             // Update slider value displays
@@ -847,14 +1680,22 @@
                 let searchUrl = '';
 
                 if (currentSearchMode === 'image') {
-                    const file = imageInput.files[0];
-                    if (!file) {
-                        alert('Please select an image first.');
-                        return;
+                    // Use edited image if available, otherwise use original
+                    let fileToSend;
+                    if (currentEditedBlob) {
+                        fileToSend = currentEditedBlob;
+                    } else {
+                        const file = imageInput.files[0];
+                        if (!file) {
+                            alert('Please select an image first.');
+                            return;
+                        }
+                        fileToSend = file;
                     }
+                    
                     isValid = true;
                     searchData = new FormData();
-                    searchData.append('file', file);
+                    searchData.append('file', fileToSend);
                     searchUrl = '/search/image';
                 } else {
                     const query = textQuery.value.trim();
@@ -902,7 +1743,8 @@
                     if (currentSearchMode === 'text') {
                         queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
                     } else {
-                        queryTextSpan.textContent = `Image: ${imageInput.files[0].name}`;
+                        const fileName = currentEditedBlob ? 'Edited Image' : imageInput.files[0].name;
+                        queryTextSpan.textContent = `Image: ${fileName}`;
                     }
                     currentQueryDiv.style.display = 'block';
 
@@ -976,17 +1818,19 @@
                 }
             });
 
-            // Modal functionality (same as before with slight modifications)
+            // Modal functionality
             function openModal(index, isUploadedImage = false) {
                 if (isUploadedImage) {
                     modalImage.src = imagePreview.src;
                     modalImage.alt = 'Uploaded image';
                     
-                    const file = imageInput.files[0];
+                    const fileName = currentEditedBlob ? 'Edited Image' : (imageInput.files[0] ? imageInput.files[0].name : 'Image');
+                    const fileSize = currentEditedBlob ? 'Modified' : (imageInput.files[0] ? formatFileSize(imageInput.files[0].size) : 'Unknown');
+                    
                     modalInfo.innerHTML = `
                         <h4>Uploaded Image</h4>
-                        <p><strong>Filename:</strong> ${file.name}</p>
-                        <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
+                        <p><strong>Filename:</strong> ${fileName}</p>
+                        <p><strong>Size:</strong> ${fileSize}</p>
                     `;
                     
                     prevBtn.style.display = 'none';
@@ -1062,6 +1906,25 @@
                         case 'ArrowRight':
                             showNextImage();
                             break;
+                    }
+                } else if (editorModal.classList.contains('show')) {
+                    if (e.key === 'Escape') {
+                        closeImageEditor();
+                    } else if (e.ctrlKey || e.metaKey) {
+                        switch(e.key) {
+                            case 'z':
+                                if (e.shiftKey) {
+                                    redoBtn.click();
+                                } else {
+                                    undoBtn.click();
+                                }
+                                e.preventDefault();
+                                break;
+                            case 'y':
+                                redoBtn.click();
+                                e.preventDefault();
+                                break;
+                        }
                     }
                 }
             });
