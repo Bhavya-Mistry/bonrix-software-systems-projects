@@ -267,8 +267,10 @@
         .editor-content {
             background: white;
             border-radius: 12px;
-            max-width: 90vw;
-            max-height: 90vh;
+            width: 90vw;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 800px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -318,14 +320,19 @@
             justify-content: center;
             position: relative;
             background: #f8f9fa;
+            min-height: 400px;
+            overflow: hidden;
         }
 
         .editor-canvas {
             border: 1px solid #dee2e6;
             border-radius: 8px;
-            max-width: 100%;
-            max-height: 100%;
+            max-width: calc(100% - 2rem);
+            max-height: calc(100% - 2rem);
+            min-width: 100px;
+            min-height: 100px;
             cursor: crosshair;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .crop-overlay {
@@ -767,13 +774,24 @@
                 font-size: 0.9rem;
             }
             
+            .editor-content {
+                width: 95vw;
+                height: 95vh;
+                max-width: none;
+                max-height: none;
+            }
+            
+            .editor-canvas-container {
+                min-height: 300px;
+            }
+            
             .editor-body {
                 flex-direction: column;
             }
             
             .editor-controls {
                 width: 100%;
-                max-height: 300px;
+                max-height: 250px;
                 border-left: none;
                 border-top: 1px solid #e9ecef;
             }
@@ -1218,13 +1236,24 @@
                     editorCtx.drawImage(img, 0, 0, width, height);
                     originalImageData = editorCtx.getImageData(0, 0, width, height);
                     
-                    // Initialize edit history
-                    editHistory = [editorCtx.getImageData(0, 0, width, height)];
+                    // Initialize edit history with original image
+                    const initialEntry = {
+                        imageData: editorCtx.getImageData(0, 0, width, height),
+                        width: width,
+                        height: height
+                    };
+                    editHistory = [initialEntry];
                     historyIndex = 0;
                     updateHistoryButtons();
                     
+                    console.log('Initialized editor with image size:', width, 'x', height);
+                    
                     // Reset controls
                     resetSliders();
+                    
+                    // Reset canvas display scaling
+                    editorCanvas.style.width = '';
+                    editorCanvas.style.height = '';
                     
                     editorModal.classList.add('show');
                     document.body.style.overflow = 'hidden';
@@ -1260,12 +1289,18 @@
                     editHistory = editHistory.slice(0, historyIndex + 1);
                 }
                 
-                // Add current state
+                // Add current state - need to copy the canvas data AND dimensions
                 const currentImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
-                editHistory.push(currentImageData);
+                const historyEntry = {
+                    imageData: currentImageData,
+                    width: editorCanvas.width,
+                    height: editorCanvas.height
+                };
+                editHistory.push(historyEntry);
                 historyIndex++;
                 
                 console.log('Saved to history, index:', historyIndex, 'total history items:', editHistory.length);
+                console.log('Saved canvas size:', historyEntry.width, 'x', historyEntry.height);
                 
                 // Limit history size
                 if (editHistory.length > 20) {
@@ -1277,26 +1312,70 @@
             }
 
             function updateHistoryButtons() {
-                undoBtn.disabled = historyIndex <= 0;
-                redoBtn.disabled = historyIndex >= editHistory.length - 1;
+                const canUndo = historyIndex > 0;
+                const canRedo = historyIndex < editHistory.length - 1;
+                
+                undoBtn.disabled = !canUndo;
+                redoBtn.disabled = !canRedo;
+                
+                console.log('History buttons updated:', { 
+                    historyIndex, 
+                    totalHistory: editHistory.length, 
+                    canUndo, 
+                    canRedo 
+                });
+            }
+
+            function scaleCanvasForDisplay() {
+                // After cropping, the canvas might be very small, so let's scale it up for better visibility
+                const container = document.querySelector('.editor-canvas-container');
+                const containerRect = container.getBoundingClientRect();
+                const maxDisplayWidth = containerRect.width - 100; // Leave some padding
+                const maxDisplayHeight = containerRect.height - 100;
+                
+                const currentWidth = editorCanvas.width;
+                const currentHeight = editorCanvas.height;
+                
+                // Calculate scale to fit nicely in the container (but not too big)
+                const scaleX = Math.min(maxDisplayWidth / currentWidth, 3); // Max 3x scale
+                const scaleY = Math.min(maxDisplayHeight / currentHeight, 3);
+                const scale = Math.min(scaleX, scaleY, 3);
+                
+                if (scale > 1.1) { // Only scale if it makes a meaningful difference
+                    editorCanvas.style.width = (currentWidth * scale) + 'px';
+                    editorCanvas.style.height = (currentHeight * scale) + 'px';
+                    console.log(`Scaled canvas display by ${scale.toFixed(2)}x for better visibility`);
+                } else {
+                    editorCanvas.style.width = '';
+                    editorCanvas.style.height = '';
+                }
             }
 
             function applyFilters() {
                 if (!originalImageData) return;
                 
-                // Start with original image data for cumulative effects
-                const imageData = editorCtx.createImageData(originalImageData);
+                // Start with the current "clean" state from history if we have adjustments
+                let baseImageData;
+                if (historyIndex >= 0 && editHistory[historyIndex]) {
+                    const currentHistoryEntry = editHistory[historyIndex];
+                    baseImageData = currentHistoryEntry.imageData;
+                } else {
+                    baseImageData = originalImageData;
+                }
+                
+                // Create a new image data object for manipulation
+                const imageData = editorCtx.createImageData(baseImageData);
                 const data = imageData.data;
-                const originalData = originalImageData.data;
+                const sourceData = baseImageData.data;
                 
                 // Get filter values
                 const brightness = parseInt(brightnessSlider.value);
                 const contrast = parseInt(contrastSlider.value);
                 
                 for (let i = 0; i < data.length; i += 4) {
-                    let r = originalData[i];
-                    let g = originalData[i + 1];
-                    let b = originalData[i + 2];
+                    let r = sourceData[i];
+                    let g = sourceData[i + 1];
+                    let b = sourceData[i + 2];
                     
                     // Apply brightness
                     if (brightness !== 0) {
@@ -1316,7 +1395,7 @@
                     data[i] = r;
                     data[i + 1] = g;
                     data[i + 2] = b;
-                    data[i + 3] = originalData[i + 3]; // Keep original alpha
+                    data[i + 3] = sourceData[i + 3]; // Keep original alpha
                 }
                 
                 editorCtx.putImageData(imageData, 0, 0);
@@ -1563,6 +1642,11 @@
                     // Save to history
                     saveToHistory();
                     
+                    // Scale canvas for better display after crop
+                    setTimeout(() => {
+                        scaleCanvasForDisplay();
+                    }, 50);
+                    
                 } catch (error) {
                     console.error('Error during crop:', error);
                     alert('Error applying crop. Please try again.');
@@ -1584,64 +1668,119 @@
                 console.log('Crop completed successfully!');
             }
 
-            // Slider event listeners
+            // Slider event listeners with history tracking
+            let adjustmentTimeout = null;
+            
+            function scheduleHistorySave() {
+                // Clear existing timeout
+                if (adjustmentTimeout) {
+                    clearTimeout(adjustmentTimeout);
+                }
+                
+                // Save to history after user stops adjusting for 500ms
+                adjustmentTimeout = setTimeout(() => {
+                    console.log('Saving adjustment to history');
+                    saveToHistory();
+                }, 500);
+            }
+            
             brightnessSlider.addEventListener('input', (e) => {
                 brightnessValue.textContent = e.target.value;
                 applyFilters();
+                scheduleHistorySave();
             });
 
             contrastSlider.addEventListener('input', (e) => {
                 contrastValue.textContent = e.target.value;
                 applyFilters();
+                scheduleHistorySave();
             });
 
             // History controls
             undoBtn.addEventListener('click', () => {
                 if (historyIndex > 0) {
                     historyIndex--;
-                    const imageData = editHistory[historyIndex];
-                    editorCtx.putImageData(imageData, 0, 0);
+                    const historyEntry = editHistory[historyIndex];
                     
-                    // Update canvas and image rect if needed
-                    if (editorCanvas.width !== imageData.width || editorCanvas.height !== imageData.height) {
-                        editorCanvas.width = imageData.width;
-                        editorCanvas.height = imageData.height;
-                        imageRect = { x: 0, y: 0, width: imageData.width, height: imageData.height };
-                    }
+                    console.log('Undo to index:', historyIndex, 'Canvas size:', historyEntry.width, 'x', historyEntry.height);
                     
-                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    // Restore canvas size and image data
+                    editorCanvas.width = historyEntry.width;
+                    editorCanvas.height = historyEntry.height;
+                    editorCtx.putImageData(historyEntry.imageData, 0, 0);
+                    
+                    // Update image rect and original data
+                    imageRect = { x: 0, y: 0, width: historyEntry.width, height: historyEntry.height };
+                    originalImageData = editorCtx.getImageData(0, 0, historyEntry.width, historyEntry.height);
+                    
+                    // Reset sliders and scale for display
                     resetSliders();
                     updateHistoryButtons();
+                    
+                    setTimeout(() => {
+                        scaleCanvasForDisplay();
+                    }, 50);
                 }
             });
 
             redoBtn.addEventListener('click', () => {
                 if (historyIndex < editHistory.length - 1) {
                     historyIndex++;
-                    const imageData = editHistory[historyIndex];
-                    editorCtx.putImageData(imageData, 0, 0);
+                    const historyEntry = editHistory[historyIndex];
                     
-                    // Update canvas and image rect if needed  
-                    if (editorCanvas.width !== imageData.width || editorCanvas.height !== imageData.height) {
-                        editorCanvas.width = imageData.width;
-                        editorCanvas.height = imageData.height;
-                        imageRect = { x: 0, y: 0, width: imageData.width, height: imageData.height };
-                    }
+                    console.log('Redo to index:', historyIndex, 'Canvas size:', historyEntry.width, 'x', historyEntry.height);
                     
-                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    // Restore canvas size and image data
+                    editorCanvas.width = historyEntry.width;
+                    editorCanvas.height = historyEntry.height;
+                    editorCtx.putImageData(historyEntry.imageData, 0, 0);
+                    
+                    // Update image rect and original data
+                    imageRect = { x: 0, y: 0, width: historyEntry.width, height: historyEntry.height };
+                    originalImageData = editorCtx.getImageData(0, 0, historyEntry.width, historyEntry.height);
+                    
+                    // Reset sliders and scale for display
                     resetSliders();
                     updateHistoryButtons();
+                    
+                    setTimeout(() => {
+                        scaleCanvasForDisplay();
+                    }, 50);
                 }
             });
 
             resetBtn.addEventListener('click', () => {
                 if (editHistory.length > 0) {
-                    editorCtx.putImageData(editHistory[0], 0, 0);
-                    originalImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                    console.log('Resetting to original image');
+                    
+                    // Go back to the first entry (original image)
+                    const originalEntry = editHistory[0];
+                    
+                    // Restore canvas size and original image
+                    editorCanvas.width = originalEntry.width;
+                    editorCanvas.height = originalEntry.height;
+                    editorCtx.putImageData(originalEntry.imageData, 0, 0);
+                    
+                    // Update image rect and original data
+                    imageRect = { x: 0, y: 0, width: originalEntry.width, height: originalEntry.height };
+                    originalImageData = editorCtx.getImageData(0, 0, originalEntry.width, originalEntry.height);
+                    
+                    // Reset sliders
                     resetSliders();
+                    
+                    // Reset history to just the original
+                    editHistory = [originalEntry];
                     historyIndex = 0;
-                    editHistory = [originalImageData];
                     updateHistoryButtons();
+                    
+                    console.log('Reset complete. Canvas size:', originalEntry.width, 'x', originalEntry.height);
+                    
+                    // Scale for display
+                    setTimeout(() => {
+                        scaleCanvasForDisplay();
+                    }, 50);
+                } else {
+                    console.log('No history available for reset');
                 }
             });
 
@@ -1650,8 +1789,15 @@
             editorCancelBtn.addEventListener('click', closeImageEditor);
 
             editorApplyBtn.addEventListener('click', () => {
-                // Save current adjustments to history first
+                // Clear any pending history saves first
+                if (adjustmentTimeout) {
+                    clearTimeout(adjustmentTimeout);
+                    adjustmentTimeout = null;
+                }
+                
+                // Save final state to history if there are unsaved adjustments
                 if (brightnessSlider.value != 0 || contrastSlider.value != 0) {
+                    console.log('Saving final adjustments before applying changes');
                     saveToHistory();
                 }
                 
