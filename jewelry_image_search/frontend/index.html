@@ -110,6 +110,7 @@
             font-size: 1rem;
             transition: border-color 0.2s ease;
             box-sizing: border-box;
+            background-color: #fff; /* Ensure select has a background */
         }
 
         .text-input:focus {
@@ -846,6 +847,19 @@
                 <!-- Image Search Tab -->
                 <div id="image-tab" class="tab-content active">
                     <h3>Upload Image</h3>
+                    <!-- NEW: Endpoint Selector Dropdown -->
+                    <div class="endpoint-selector-container" style="margin-bottom: 1.5rem;">
+                        <label for="endpoint-select" style="font-weight: 500; color: #495057; display: block; margin-bottom: 0.5rem;">Select Action:</label>
+                        <select id="endpoint-select" class="text-input">
+                            <option value="/search/image" selected>Image Search (Default)</option>
+                            <option value="/chatgpt">Preprocess for ChatGPT</option>
+                            <option value="/gemini">Preprocess for Gemini</option>
+                            <option value="/bgremover">Background Remover</option>
+                            <option value="/quin">Preprocess for Quin</option>
+                            <option value="/nanobanana">Preprocess for NanoBanana</option>
+                        </select>
+                    </div>
+
                     <div id="drop-zone" class="drop-zone">
                         <input type="file" id="image-input" accept="image/*" class="file-input" title="Image Upload">
                         <div id="drop-zone-prompt" class="drop-zone-prompt">
@@ -1058,6 +1072,12 @@
             const closeBtn = document.querySelector('.close');
             const prevBtn = document.getElementById('prev-button');
             const nextBtn = document.getElementById('next-button');
+            
+            // NEW: Endpoint selector and related controls
+            const endpointSelect = document.getElementById('endpoint-select');
+            const quantitySliderContainer = document.getElementById('quantity-slider').closest('.slider-container');
+            const accuracySliderContainer = document.getElementById('accuracy-slider').closest('.slider-container');
+
 
             // Store current search state
             let currentSearchMode = 'image';
@@ -1111,11 +1131,8 @@
                         accuracyValue.textContent = '70%';
                     }
                 } else {
-                    searchButton.textContent = 'Search Similar Images';
-                    if (accuracySlider.value == 70) {
-                        accuracySlider.value = 90;
-                        accuracyValue.textContent = '90%';
-                    }
+                    // This part is now handled by toggleSearchControls
+                    toggleSearchControls();
                 }
             }
 
@@ -1819,6 +1836,25 @@
                 accuracyValue.textContent = `${e.target.value}%`;
             });
 
+            // NEW: Function to toggle search controls based on dropdown
+            function toggleSearchControls() {
+                const selectedEndpoint = endpointSelect.value;
+                if (selectedEndpoint === '/search/image') {
+                    quantitySliderContainer.style.display = 'flex';
+                    accuracySliderContainer.style.display = 'flex';
+                    searchButton.textContent = 'Search Similar Images';
+                } else {
+                    quantitySliderContainer.style.display = 'none';
+                    accuracySliderContainer.style.display = 'none';
+                    searchButton.textContent = 'Process Image';
+                }
+            }
+
+            endpointSelect.addEventListener('change', toggleSearchControls);
+            // Initial check on page load
+            toggleSearchControls();
+
+
             // Enhanced search functionality
             searchButton.addEventListener('click', async () => {
                 let isValid = false;
@@ -1842,8 +1878,11 @@
                     isValid = true;
                     searchData = new FormData();
                     searchData.append('file', fileToSend);
-                    searchUrl = '/search/image';
-                } else {
+                    
+                    // MODIFIED: Get URL from dropdown
+                    searchUrl = endpointSelect.value;
+
+                } else { // Text search mode
                     const query = textQuery.value.trim();
                     if (!query) {
                         alert('Please enter a search query.');
@@ -1861,11 +1900,11 @@
 
                 // Set loading state
                 searchButton.disabled = true;
-                searchButton.textContent = 'Searching...';
-                resultsContainer.innerHTML = '<p>Searching for similar images...</p>';
+                searchButton.textContent = 'Processing...';
+                resultsContainer.innerHTML = '<p>Processing your request...</p>';
 
-                // Add query parameters for image search
-                if (currentSearchMode === 'image') {
+                // MODIFIED: Conditionally add query params
+                if (searchUrl === '/search/image') {
                     const topK = quantitySlider.value;
                     const minPercent = accuracySlider.value;
                     searchUrl += `?top_k=${topK}&min_percent=${minPercent}`;
@@ -1881,71 +1920,86 @@
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
 
-                    const data = await response.json();
-                    currentResults = data;
-                    resultsContainer.innerHTML = '';
+                    // MODIFIED: Handle different response types
+                    const selectedEndpoint = endpointSelect.value;
 
-                    // Show current query
-                    if (currentSearchMode === 'text') {
-                        queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
+                    if (currentSearchMode === 'text' || selectedEndpoint === '/search/image') {
+                        // This is a search request, expect JSON
+                        const data = await response.json();
+                        currentResults = data;
+                        resultsContainer.innerHTML = '';
+
+                        // Show current query
+                        if (currentSearchMode === 'text') {
+                            queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
+                        } else {
+                            const fileName = currentEditedBlob ? 'Edited Image' : imageInput.files[0].name;
+                            queryTextSpan.textContent = `Image: ${fileName}`;
+                        }
+                        currentQueryDiv.style.display = 'block';
+
+                        if (data && data.length > 0) {
+                            data.forEach((hit, index) => {
+                                const resultItem = document.createElement('div');
+                                resultItem.className = 'result-item';
+                                resultItem.style.cursor = 'pointer';
+                                resultItem.addEventListener('click', () => openModal(index));
+
+                                const img = document.createElement('img');
+                                const imageName = hit.image_path.split(/[\\/]/).pop();
+                                img.src = `/images/${imageName}`;
+                                img.alt = hit.title || 'Jewelry image';
+                                img.onerror = function() {
+                                    this.style.display = 'none';
+                                    const errorMsg = document.createElement('div');
+                                    errorMsg.textContent = 'Image not found';
+                                    errorMsg.className = 'image-error';
+                                    this.parentNode.insertBefore(errorMsg, this);
+                                };
+
+                                const details = document.createElement('div');
+                                details.className = 'result-details';
+                                
+                                const score = document.createElement('p');
+                                score.className = 'match-score';
+                                score.textContent = `Match: ${hit.match_percent.toFixed(1)}%`;
+
+                                const rank = document.createElement('p');
+                                rank.className = 'result-rank';
+                                rank.textContent = `Rank #${hit.rank}`;
+
+                                if (hit.sku) {
+                                    const sku = document.createElement('p');
+                                    sku.className = 'product-sku';
+                                    sku.textContent = `SKU: ${hit.sku}`;
+                                    details.appendChild(sku);
+                                }
+
+                                if (hit.title && hit.title !== hit.sku) {
+                                    const title = document.createElement('p');
+                                    title.className = 'product-title';
+                                    title.textContent = hit.title;
+                                    details.appendChild(title);
+                                }
+
+                                details.appendChild(rank);
+                                details.appendChild(score);
+                                resultItem.appendChild(img);
+                                resultItem.appendChild(details);
+                                resultsContainer.appendChild(resultItem);
+                            });
+                        } else {
+                            resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy or using different search terms.</p>';
+                        }
                     } else {
-                        const fileName = currentEditedBlob ? 'Edited Image' : imageInput.files[0].name;
-                        queryTextSpan.textContent = `Image: ${fileName}`;
-                    }
-                    currentQueryDiv.style.display = 'block';
-
-                    if (data && data.length > 0) {
-                        data.forEach((hit, index) => {
-                            const resultItem = document.createElement('div');
-                            resultItem.className = 'result-item';
-                            resultItem.style.cursor = 'pointer';
-                            resultItem.addEventListener('click', () => openModal(index));
-
-                            const img = document.createElement('img');
-                            const imageName = hit.image_path.split(/[\\/]/).pop();
-                            img.src = `/images/${imageName}`;
-                            img.alt = hit.title || 'Jewelry image';
-                            img.onerror = function() {
-                                this.style.display = 'none';
-                                const errorMsg = document.createElement('div');
-                                errorMsg.textContent = 'Image not found';
-                                errorMsg.className = 'image-error';
-                                this.parentNode.insertBefore(errorMsg, this);
-                            };
-
-                            const details = document.createElement('div');
-                            details.className = 'result-details';
-                            
-                            const score = document.createElement('p');
-                            score.className = 'match-score';
-                            score.textContent = `Match: ${hit.match_percent.toFixed(1)}%`;
-
-                            const rank = document.createElement('p');
-                            rank.className = 'result-rank';
-                            rank.textContent = `Rank #${hit.rank}`;
-
-                            if (hit.sku) {
-                                const sku = document.createElement('p');
-                                sku.className = 'product-sku';
-                                sku.textContent = `SKU: ${hit.sku}`;
-                                details.appendChild(sku);
-                            }
-
-                            if (hit.title && hit.title !== hit.sku) {
-                                const title = document.createElement('p');
-                                title.className = 'product-title';
-                                title.textContent = hit.title;
-                                details.appendChild(title);
-                            }
-
-                            details.appendChild(rank);
-                            details.appendChild(score);
-                            resultItem.appendChild(img);
-                            resultItem.appendChild(details);
-                            resultsContainer.appendChild(resultItem);
-                        });
-                    } else {
-                        resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy or using different search terms.</p>';
+                        // This is a preprocessing request, expect an image blob
+                        const imageBlob = await response.blob();
+                        const imageUrl = URL.createObjectURL(imageBlob);
+                        resultsContainer.innerHTML = `
+                            <h3>Processed Image</h3>
+                            <img src="${imageUrl}" alt="Processed Image" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        `;
+                        currentQueryDiv.style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Search Error:', error);
@@ -1953,7 +2007,7 @@
                 } finally {
                     // Restore button state
                     searchButton.disabled = false;
-                    searchButton.textContent = currentSearchMode === 'image' ? 'Search Similar Images' : 'Search by Description';
+                    toggleSearchControls(); // This will set the correct text
                 }
             });
 

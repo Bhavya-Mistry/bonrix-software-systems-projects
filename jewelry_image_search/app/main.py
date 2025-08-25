@@ -111,3 +111,37 @@ async def search_text(
 @app.get("/healthz")
 def healthz():
     return {"status": "ok", "index_size": len(id_map)}
+
+
+
+from fastapi.responses import Response
+
+@app.post("/chatgpt")
+async def preprocess_chatgpt(file: UploadFile = File(...)):
+    """Return the uploaded image for ChatGPT preprocessing"""
+    content = await file.read()
+    return Response(content=content, media_type=file.content_type)
+
+@app.post("/gemini")
+async def preprocess_gemini(file: UploadFile = File(...)):
+    """Return the uploaded image for Gemini preprocessing"""
+    content = await file.read()
+    return Response(content=content, media_type=file.content_type)
+
+@app.post("/bgremover")
+async def preprocess_bgremover(file: UploadFile = File(...)):
+    """Return the uploaded image for background removal preprocessing"""
+    content = await file.read()
+    return Response(content=content, media_type=file.content_type)
+
+@app.post("/quin")
+async def preprocess_quin(file: UploadFile = File(...)):
+    """Return the uploaded image for Quin preprocessing"""
+    content = await file.read()
+    return Response(content=content, media_type=file.content_type)
+
+@app.post("/nanobanana")
+async def preprocess_nanobanana(file: UploadFile = File(...)):
+    """Return the uploaded image for NanoBanana preprocessing"""
+    content = await file.read()
+    return Response(content=content, media_type=file.content_type)
