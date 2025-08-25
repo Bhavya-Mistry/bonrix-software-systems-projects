@@ -36,7 +36,7 @@ class Hit(BaseModel):
     sku: Optional[str] = None
     title: Optional[str] = None
 
-# Updated function to only select existing columns
+# Updated function to normalize paths and attach metadata
 def attach_metadata(hits: List[dict]) -> List[Hit]:
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
@@ -46,22 +46,28 @@ def attach_metadata(hits: List[dict]) -> List[Hit]:
         # Get the original path from search results
         original_path = h['image_path']
         
-        # Try the original path first - only select columns that exist
+        # Normalize the path for consistent forward slashes in response
+        normalized_path = original_path.replace('\\', '/')
+        
+        # Create a new hit dict with normalized path
+        normalized_hit = h.copy()
+        normalized_hit['image_path'] = normalized_path
+        
+        # Try the original path first for database lookup
         cur.execute("SELECT sku, title FROM products WHERE image_path = ? LIMIT 1", (original_path,))
         row = cur.fetchone()
         
         if row:
             sku, title = row
-            enriched.append(Hit(**h, sku=sku, title=title))
+            enriched.append(Hit(**normalized_hit, sku=sku, title=title))
         else:
             # If not found, try with forward slashes
-            normalized_path = original_path.replace('\\', '/')
             cur.execute("SELECT sku, title FROM products WHERE image_path = ? LIMIT 1", (normalized_path,))
             row = cur.fetchone()
             
             if row:
                 sku, title = row
-                enriched.append(Hit(**h, sku=sku, title=title))
+                enriched.append(Hit(**normalized_hit, sku=sku, title=title))
             else:
                 # If still not found, try with just the filename
                 filename = os.path.basename(original_path)
@@ -70,10 +76,10 @@ def attach_metadata(hits: List[dict]) -> List[Hit]:
                 
                 if row:
                     sku, title = row
-                    enriched.append(Hit(**h, sku=sku, title=title))
+                    enriched.append(Hit(**normalized_hit, sku=sku, title=title))
                 else:
                     # No match found, add without metadata
-                    enriched.append(Hit(**h))
+                    enriched.append(Hit(**normalized_hit))
     
     con.close()
     return enriched
