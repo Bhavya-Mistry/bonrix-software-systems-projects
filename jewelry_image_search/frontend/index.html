@@ -122,6 +122,37 @@
             color: #6c757d;
         }
 
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .action-button {
+            background-color: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            background-color: #dee2e6;
+            border-color: #b3b9c0;
+        }
+
+        .action-button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
         /* Drop Zone */
         .drop-zone {
             border: 2px dashed #ced4da;
@@ -847,17 +878,17 @@
                 <!-- Image Search Tab -->
                 <div id="image-tab" class="tab-content active">
                     <h3>Upload Image</h3>
-                    <!-- NEW: Endpoint Selector Dropdown -->
-                    <div class="endpoint-selector-container" style="margin-bottom: 1.5rem;">
-                        <label for="endpoint-select" style="font-weight: 500; color: #495057; display: block; margin-bottom: 0.5rem;">Select Action:</label>
-                        <select id="endpoint-select" class="text-input">
-                            <option value="/search/image" selected>Image Search (Default)</option>
-                            <option value="/chatgpt">Preprocess for ChatGPT</option>
-                            <option value="/gemini">Preprocess for Gemini</option>
-                            <option value="/bgremover">Background Remover</option>
-                            <option value="/quin">Preprocess for Quin</option>
-                            <option value="/nanobanana">Preprocess for NanoBanana</option>
-                        </select>
+                    <!-- REPLACED: Dropdown with Buttons -->
+                    <div class="action-buttons-container" style="margin-bottom: 1.5rem;">
+                        <label style="font-weight: 500; color: #495057; display: block; margin-bottom: 0.75rem;">Select Action:</label>
+                        <div class="action-buttons">
+                            <button class="action-button active" data-endpoint="/search/image">Image Search</button>
+                            <button class="action-button" data-endpoint="/chatgpt">ChatGPT</button>
+                            <button class="action-button" data-endpoint="/gemini">Gemini</button>
+                            <button class="action-button" data-endpoint="/bgremover">BG Remover</button>
+                            <button class="action-button" data-endpoint="/quin">Quin</button>
+                            <button class="action-button" data-endpoint="/nanobanana">NanoBanana</button>
+                        </div>
                     </div>
 
                     <div id="drop-zone" class="drop-zone">
@@ -1073,14 +1104,14 @@
             const prevBtn = document.getElementById('prev-button');
             const nextBtn = document.getElementById('next-button');
             
-            // NEW: Endpoint selector and related controls
-            const endpointSelect = document.getElementById('endpoint-select');
+            // MODIFIED: Action buttons and related controls
+            const actionButtons = document.querySelectorAll('.action-button');
             const quantitySliderContainer = document.getElementById('quantity-slider').closest('.slider-container');
             const accuracySliderContainer = document.getElementById('accuracy-slider').closest('.slider-container');
 
-
             // Store current search state
             let currentSearchMode = 'image';
+            let selectedEndpoint = '/search/image'; // NEW: State for selected endpoint
             let currentResults = [];
             let currentImageIndex = 0;
 
@@ -1131,7 +1162,6 @@
                         accuracyValue.textContent = '70%';
                     }
                 } else {
-                    // This part is now handled by toggleSearchControls
                     toggleSearchControls();
                 }
             }
@@ -1836,9 +1866,8 @@
                 accuracyValue.textContent = `${e.target.value}%`;
             });
 
-            // NEW: Function to toggle search controls based on dropdown
+            // NEW: Function to toggle search controls based on selected button
             function toggleSearchControls() {
-                const selectedEndpoint = endpointSelect.value;
                 if (selectedEndpoint === '/search/image') {
                     quantitySliderContainer.style.display = 'flex';
                     accuracySliderContainer.style.display = 'flex';
@@ -1849,8 +1878,17 @@
                     searchButton.textContent = 'Process Image';
                 }
             }
+            
+            // NEW: Event listeners for action buttons
+            actionButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    selectedEndpoint = button.dataset.endpoint;
+                    actionButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    toggleSearchControls();
+                });
+            });
 
-            endpointSelect.addEventListener('change', toggleSearchControls);
             // Initial check on page load
             toggleSearchControls();
 
@@ -1879,8 +1917,8 @@
                     searchData = new FormData();
                     searchData.append('file', fileToSend);
                     
-                    // MODIFIED: Get URL from dropdown
-                    searchUrl = endpointSelect.value;
+                    // MODIFIED: Get URL from state variable
+                    searchUrl = selectedEndpoint;
 
                 } else { // Text search mode
                     const query = textQuery.value.trim();
@@ -1921,8 +1959,6 @@
                     }
 
                     // MODIFIED: Handle different response types
-                    const selectedEndpoint = endpointSelect.value;
-
                     if (currentSearchMode === 'text' || selectedEndpoint === '/search/image') {
                         // This is a search request, expect JSON
                         const data = await response.json();

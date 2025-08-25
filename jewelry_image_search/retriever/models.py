@@ -11,7 +11,7 @@ CLIP_MODELS = {
 }
 
 # Set your desired model from the available ones
-SELECTED_MODEL = 'ViT-B/32'  # Change this to any model from the list
+SELECTED_MODEL = 'ViT-L/14'  # Change this to any model from the list
 
 # Model setup
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
