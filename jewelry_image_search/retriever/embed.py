@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from PIL import Image
 import torchvision.transforms as transforms
+import open_clip
 import glob
 
 # Basic transform without preprocessing - just convert PIL to tensor
@@ -23,6 +24,14 @@ def embed_image_pil(pil_img, model, device: str):
     feats = model.encode_image(img)
     feats = feats / feats.norm(dim=-1, keepdim=True)
     return feats.squeeze(0).cpu().numpy().astype("float32")
+
+@torch.no_grad()
+def embed_text(text: str, model, device: str):
+    """Embed text query using CLIP text encoder"""
+    text_tokens = open_clip.tokenize([text]).to(device)
+    text_features = model.encode_text(text_tokens)
+    text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+    return text_features.squeeze(0).cpu().numpy().astype("float32")
 
 @torch.no_grad()
 def embed_image_path(path: str, model, device: str):

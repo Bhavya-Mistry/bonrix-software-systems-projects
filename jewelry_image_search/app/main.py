@@ -1,13 +1,13 @@
 import os, io, sqlite3
 from typing import Optional, List
-from fastapi import FastAPI, UploadFile, File, Query
+from fastapi import FastAPI, UploadFile, File, Query, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from PIL import Image
 import torch
 from retriever.models import load_model
-from retriever.embed import embed_image_pil  # No need for preprocess anymore
+from retriever.embed import embed_image_pil, embed_text  # Import text embedding
 from retriever.index import load_index, read_id_map, search
 
 app = FastAPI(title="Jewelry Image Search", version="0.1.0")
@@ -94,6 +94,17 @@ async def search_image(file: UploadFile = File(...), top_k: int = 8, min_percent
     pil = Image.open(io.BytesIO(await file.read())).convert("RGB")
     # Make sure 'device' is passed as the argument for embedding
     qvec = embed_image_pil(pil, model, device)  # Pass device correctly
+    hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
+    return attach_metadata(hits)
+
+@app.post("/search/text", response_model=List[Hit])
+async def search_text(
+    query: str = Form(...),
+    top_k: int = Form(8),
+    min_percent: float = Form(70.0)
+):
+    """Search for images using text description"""
+    qvec = embed_text(query, model, device)
     hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
     return attach_metadata(hits)
 

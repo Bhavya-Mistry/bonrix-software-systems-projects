@@ -34,6 +34,35 @@
             font-size: 1.1rem;
         }
 
+        /* Search Mode Tabs */
+        .search-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: #6c757d;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .tab-button:hover {
+            color: #007bff;
+        }
+
         /* Two-Panel Layout */
         .main-content {
             display: grid;
@@ -42,7 +71,7 @@
             align-items: start;
         }
 
-        .upload-panel, .controls-panel {
+        .search-panel, .controls-panel {
             background: #ffffff;
             padding: 2rem;
             border-radius: 12px;
@@ -57,6 +86,39 @@
             margin-bottom: 1.5rem;
             border-bottom: 1px solid #dee2e6;
             padding-bottom: 0.75rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Text Search Styles */
+        .text-search-container {
+            margin-bottom: 2rem;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .text-input::placeholder {
+            color: #6c757d;
         }
 
         /* Drop Zone */
@@ -221,6 +283,26 @@
 
         #search-button:hover { background-color: #0056b3; }
         #search-button:active { transform: scale(0.98); }
+        #search-button:disabled { 
+            background-color: #6c757d; 
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Current Query Display */
+        .current-query {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #0066cc;
+        }
+
+        .current-query strong {
+            color: #004499;
+        }
 
         /* Results Grid */
         .results-grid {
@@ -433,6 +515,15 @@
                 grid-template-columns: 1fr;
             }
             
+            .search-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-button {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            
             .modal-content {
                 max-width: 95vw;
                 max-height: 90vh;
@@ -470,28 +561,59 @@
 <body>
     <div class="container">
         <h1>Jewelry Image Search</h1>
-        <p class="subtitle">Upload an image to find similar items from our collection.</p>
+        <p class="subtitle">Upload an image or describe what you're looking for to find similar items from our collection.</p>
+
+        <!-- Search Mode Tabs -->
+        <div class="search-tabs">
+            <button class="tab-button active" data-tab="image">🖼️ Image Search</button>
+            <button class="tab-button" data-tab="text">📝 Text Search</button>
+        </div>
 
         <div class="main-content">
-            <div class="upload-panel">
-                <h3>Upload Image</h3>
-                <div id="drop-zone" class="drop-zone">
-                    <input type="file" id="image-input" accept="image/*" class="file-input" title="Image Upload">
-                    <div id="drop-zone-prompt" class="drop-zone-prompt">
-                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <p><strong>Drag & drop</strong> an image here, or click to select</p>
-                        <span id="file-name" class="file-name">No file chosen</span>
-                    </div>
-                    <div id="image-preview-container" class="image-preview-container" style="display: none;">
-                        <div class="image-preview-wrapper">
-                            <img id="image-preview" class="image-preview clickable" alt="Uploaded image preview">
-                            <div class="image-info">
-                                <span id="preview-filename" class="preview-filename"></span>
-                                <span id="preview-size" class="preview-size"></span>
+            <div class="search-panel">
+                <!-- Image Search Tab -->
+                <div id="image-tab" class="tab-content active">
+                    <h3>Upload Image</h3>
+                    <div id="drop-zone" class="drop-zone">
+                        <input type="file" id="image-input" accept="image/*" class="file-input" title="Image Upload">
+                        <div id="drop-zone-prompt" class="drop-zone-prompt">
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <p><strong>Drag & drop</strong> an image here, or click to select</p>
+                            <span id="file-name" class="file-name">No file chosen</span>
+                        </div>
+                        <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                            <div class="image-preview-wrapper">
+                                <img id="image-preview" class="image-preview clickable" alt="Uploaded image preview">
+                                <div class="image-info">
+                                    <span id="preview-filename" class="preview-filename"></span>
+                                    <span id="preview-size" class="preview-size"></span>
+                                </div>
+                            </div>
+                            <div class="preview-controls">
+                                <button id="remove-image" class="remove-image">Remove</button>
                             </div>
                         </div>
-                        <div class="preview-controls">
-                            <button id="remove-image" class="remove-image">Remove</button>
+                    </div>
+                </div>
+
+                <!-- Text Search Tab -->
+                <div id="text-tab" class="tab-content">
+                    <h3>Describe What You're Looking For</h3>
+                    <div class="text-search-container">
+                        <input 
+                            type="text" 
+                            id="text-query" 
+                            class="text-input" 
+                            placeholder="e.g., gold necklace with diamonds, vintage silver bracelet, pearl earrings..."
+                        >
+                        <div id="text-examples" style="margin-top: 1rem; font-size: 0.875rem; color: #6c757d;">
+                            <p><strong>Try examples:</strong></p>
+                            <ul style="margin: 0.5rem 0; padding-left: 1.2rem;">
+                                <li style="cursor: pointer; margin: 0.25rem 0;" data-example="diamond engagement ring">diamond engagement ring</li>
+                                <li style="cursor: pointer; margin: 0.25rem 0;" data-example="vintage gold earrings">vintage gold earrings</li>
+                                <li style="cursor: pointer; margin: 0.25rem 0;" data-example="silver chain bracelet">silver chain bracelet</li>
+                                <li style="cursor: pointer; margin: 0.25rem 0;" data-example="pearl necklace">pearl necklace</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -499,6 +621,12 @@
 
             <div class="controls-panel">
                 <h3>Search Controls</h3>
+                
+                <!-- Current Query Display -->
+                <div id="current-query" class="current-query" style="display: none;">
+                    <strong>Current query:</strong> <span id="query-text"></span>
+                </div>
+                
                 <div class="slider-container">
                     <label for="quantity-slider">Number of Results</label>
                     <div class="slider-wrapper">
@@ -509,8 +637,8 @@
                 <div class="slider-container">
                     <label for="accuracy-slider">Search Accuracy</label>
                     <div class="slider-wrapper">
-                        <input type="range" id="accuracy-slider" min="1" max="100" value="90">
-                        <span id="accuracy-value" class="slider-value">90%</span>
+                        <input type="range" id="accuracy-slider" min="1" max="100" value="70">
+                        <span id="accuracy-value" class="slider-value">70%</span>
                     </div>
                 </div>
                 <button id="search-button">Search Similar Images</button>
@@ -537,7 +665,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Get all elements
             const imageInput = document.getElementById('image-input');
+            const textQuery = document.getElementById('text-query');
             const quantitySlider = document.getElementById('quantity-slider');
             const quantityValue = document.getElementById('quantity-value');
             const accuracySlider = document.getElementById('accuracy-slider');
@@ -546,6 +676,12 @@
             const resultsContainer = document.getElementById('results-container');
             const fileNameSpan = document.getElementById('file-name');
             const dropZone = document.getElementById('drop-zone');
+            const currentQueryDiv = document.getElementById('current-query');
+            const queryTextSpan = document.getElementById('query-text');
+
+            // Tab elements
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
 
             // Image preview elements
             const dropZonePrompt = document.getElementById('drop-zone-prompt');
@@ -563,21 +699,69 @@
             const prevBtn = document.getElementById('prev-button');
             const nextBtn = document.getElementById('next-button');
 
-            // Store current results for modal navigation
+            // Store current search state
+            let currentSearchMode = 'image';
             let currentResults = [];
             let currentImageIndex = 0;
 
-            // Handle file selection via click
+            // Tab switching functionality
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.dataset.tab;
+                    switchTab(targetTab);
+                });
+            });
+
+            function switchTab(tabName) {
+                // Update buttons
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                // Update content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+
+                // Update current mode
+                currentSearchMode = tabName;
+
+                // Clear results and query display when switching tabs
+                resultsContainer.innerHTML = '';
+                currentQueryDiv.style.display = 'none';
+                
+                // Update search button text and default accuracy
+                if (tabName === 'text') {
+                    searchButton.textContent = 'Search by Description';
+                    if (accuracySlider.value == 90) {
+                        accuracySlider.value = 70;
+                        accuracyValue.textContent = '70%';
+                    }
+                } else {
+                    searchButton.textContent = 'Search Similar Images';
+                    if (accuracySlider.value == 70) {
+                        accuracySlider.value = 90;
+                        accuracyValue.textContent = '90%';
+                    }
+                }
+            }
+
+            // Text search examples
+            document.querySelectorAll('[data-example]').forEach(example => {
+                example.addEventListener('click', () => {
+                    const exampleText = example.dataset.example;
+                    textQuery.value = exampleText;
+                    textQuery.focus();
+                });
+            });
+
+            // Image upload functionality (same as before)
             imageInput.addEventListener('change', () => handleFiles(imageInput.files));
 
-            // Make the drop zone clickable (but not when clicking on buttons or preview)
             dropZone.addEventListener('click', (e) => {
                 if (!e.target.closest('.preview-controls') && !e.target.closest('.image-preview-container')) {
                     imageInput.click();
                 }
             });
 
-            // Drag and drop event listeners
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 dropZone.classList.add('drag-over');
@@ -599,8 +783,6 @@
                     const file = files[0];
                     imageInput.files = files;
                     fileNameSpan.textContent = file.name;
-                    
-                    // Show image preview
                     showImagePreview(file);
                 } else {
                     fileNameSpan.textContent = 'No file chosen';
@@ -615,13 +797,11 @@
                     previewFilename.textContent = file.name;
                     previewSize.textContent = formatFileSize(file.size);
                     
-                    // Hide drop zone prompt and show preview
                     dropZonePrompt.style.display = 'none';
                     imagePreviewContainer.style.display = 'block';
                     
-                    // Add click event to preview image for modal (prevent bubbling)
                     imagePreview.onclick = (e) => {
-                        e.stopPropagation(); // Prevent the drop zone click event
+                        e.stopPropagation();
                         openModal(null, true);
                     };
                 };
@@ -643,13 +823,12 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
-            // Remove image functionality
             removeImageBtn.addEventListener('click', () => {
                 imageInput.value = '';
                 fileNameSpan.textContent = 'No file chosen';
                 hideImagePreview();
-                // Clear any search results
                 resultsContainer.innerHTML = '';
+                currentQueryDiv.style.display = 'none';
             });
 
             // Update slider value displays
@@ -661,129 +840,54 @@
                 accuracyValue.textContent = `${e.target.value}%`;
             });
 
-            // Modal functionality
-            function openModal(index, isUploadedImage = false) {
-                if (isUploadedImage) {
-                    // Show the uploaded image in modal
-                    modalImage.src = imagePreview.src;
-                    modalImage.alt = 'Uploaded image';
-                    
-                    const file = imageInput.files[0];
-                    modalInfo.innerHTML = `
-                        <h4>Uploaded Image</h4>
-                        <p><strong>Filename:</strong> ${file.name}</p>
-                        <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
-                    `;
-                    
-                    // Hide navigation buttons for uploaded image
-                    prevBtn.style.display = 'none';
-                    nextBtn.style.display = 'none';
-                } else {
-                    // Show search result image in modal
-                    currentImageIndex = index;
-                    updateModalContent();
-                    
-                    // Show navigation buttons for search results
-                    prevBtn.style.display = 'flex';
-                    nextBtn.style.display = 'flex';
-                }
-                
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeModal() {
-                modal.classList.remove('show');
-                document.body.style.overflow = 'auto'; // Restore scrolling
-            }
-
-            function updateModalContent() {
-                const hit = currentResults[currentImageIndex];
-                if (!hit) return;
-
-                const imageName = hit.image_path.split(/[\\/]/).pop();
-                modalImage.src = `/images/${imageName}`;
-                modalImage.alt = hit.title || 'Jewelry image';
-
-                // Update modal info
-                modalInfo.innerHTML = `
-                    <h4>${hit.title || hit.sku || 'Jewelry Item'}</h4>
-                    ${hit.sku && hit.title !== hit.sku ? `<p><strong>SKU:</strong> ${hit.sku}</p>` : ''}
-                    <p><strong>Rank:</strong> #${hit.rank}</p>
-                    <p><strong>Match:</strong> ${hit.match_percent.toFixed(1)}%</p>
-                `;
-
-                // Update navigation buttons
-                prevBtn.disabled = currentImageIndex === 0;
-                nextBtn.disabled = currentImageIndex === currentResults.length - 1;
-            }
-
-            function showPrevImage() {
-                if (currentImageIndex > 0) {
-                    currentImageIndex--;
-                    updateModalContent();
-                }
-            }
-
-            function showNextImage() {
-                if (currentImageIndex < currentResults.length - 1) {
-                    currentImageIndex++;
-                    updateModalContent();
-                }
-            }
-
-            // Modal event listeners
-            closeBtn.addEventListener('click', closeModal);
-            prevBtn.addEventListener('click', showPrevImage);
-            nextBtn.addEventListener('click', showNextImage);
-
-            // Close modal when clicking outside the image
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal();
-                }
-            });
-
-            // Keyboard navigation
-            document.addEventListener('keydown', (e) => {
-                if (modal.classList.contains('show')) {
-                    switch(e.key) {
-                        case 'Escape':
-                            closeModal();
-                            break;
-                        case 'ArrowLeft':
-                            showPrevImage();
-                            break;
-                        case 'ArrowRight':
-                            showNextImage();
-                            break;
-                    }
-                }
-            });
-
+            // Enhanced search functionality
             searchButton.addEventListener('click', async () => {
-                const file = imageInput.files[0];
-                if (!file) {
-                    alert('Please select an image first.');
-                    return;
+                let isValid = false;
+                let searchData = null;
+                let searchUrl = '';
+
+                if (currentSearchMode === 'image') {
+                    const file = imageInput.files[0];
+                    if (!file) {
+                        alert('Please select an image first.');
+                        return;
+                    }
+                    isValid = true;
+                    searchData = new FormData();
+                    searchData.append('file', file);
+                    searchUrl = '/search/image';
+                } else {
+                    const query = textQuery.value.trim();
+                    if (!query) {
+                        alert('Please enter a search query.');
+                        return;
+                    }
+                    isValid = true;
+                    searchData = new FormData();
+                    searchData.append('query', query);
+                    searchData.append('top_k', quantitySlider.value);
+                    searchData.append('min_percent', accuracySlider.value);
+                    searchUrl = '/search/text';
                 }
+
+                if (!isValid) return;
 
                 // Set loading state
                 searchButton.disabled = true;
                 searchButton.textContent = 'Searching...';
                 resultsContainer.innerHTML = '<p>Searching for similar images...</p>';
 
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const topK = quantitySlider.value;
-                const minPercent = accuracySlider.value;
-                const url = `/search/image?top_k=${topK}&min_percent=${minPercent}`;
+                // Add query parameters for image search
+                if (currentSearchMode === 'image') {
+                    const topK = quantitySlider.value;
+                    const minPercent = accuracySlider.value;
+                    searchUrl += `?top_k=${topK}&min_percent=${minPercent}`;
+                }
 
                 try {
-                    const response = await fetch(url, {
+                    const response = await fetch(searchUrl, {
                         method: 'POST',
-                        body: formData,
+                        body: searchData,
                     });
 
                     if (!response.ok) {
@@ -791,16 +895,22 @@
                     }
 
                     const data = await response.json();
-                    currentResults = data; // Store results for modal navigation
-                    resultsContainer.innerHTML = ''; // Clear loading message
+                    currentResults = data;
+                    resultsContainer.innerHTML = '';
+
+                    // Show current query
+                    if (currentSearchMode === 'text') {
+                        queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
+                    } else {
+                        queryTextSpan.textContent = `Image: ${imageInput.files[0].name}`;
+                    }
+                    currentQueryDiv.style.display = 'block';
 
                     if (data && data.length > 0) {
                         data.forEach((hit, index) => {
                             const resultItem = document.createElement('div');
                             resultItem.className = 'result-item';
                             resultItem.style.cursor = 'pointer';
-
-                            // Add click event to open modal
                             resultItem.addEventListener('click', () => openModal(index));
 
                             const img = document.createElement('img');
@@ -847,7 +957,7 @@
                             resultsContainer.appendChild(resultItem);
                         });
                     } else {
-                        resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy.</p>';
+                        resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy or using different search terms.</p>';
                     }
                 } catch (error) {
                     console.error('Search Error:', error);
@@ -855,7 +965,104 @@
                 } finally {
                     // Restore button state
                     searchButton.disabled = false;
-                    searchButton.textContent = 'Search Similar Images';
+                    searchButton.textContent = currentSearchMode === 'image' ? 'Search Similar Images' : 'Search by Description';
+                }
+            });
+
+            // Allow Enter key to trigger search in text input
+            textQuery.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchButton.click();
+                }
+            });
+
+            // Modal functionality (same as before with slight modifications)
+            function openModal(index, isUploadedImage = false) {
+                if (isUploadedImage) {
+                    modalImage.src = imagePreview.src;
+                    modalImage.alt = 'Uploaded image';
+                    
+                    const file = imageInput.files[0];
+                    modalInfo.innerHTML = `
+                        <h4>Uploaded Image</h4>
+                        <p><strong>Filename:</strong> ${file.name}</p>
+                        <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
+                    `;
+                    
+                    prevBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                } else {
+                    currentImageIndex = index;
+                    updateModalContent();
+                    prevBtn.style.display = 'flex';
+                    nextBtn.style.display = 'flex';
+                }
+                
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal() {
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+
+            function updateModalContent() {
+                const hit = currentResults[currentImageIndex];
+                if (!hit) return;
+
+                const imageName = hit.image_path.split(/[\\/]/).pop();
+                modalImage.src = `/images/${imageName}`;
+                modalImage.alt = hit.title || 'Jewelry image';
+
+                modalInfo.innerHTML = `
+                    <h4>${hit.title || hit.sku || 'Jewelry Item'}</h4>
+                    ${hit.sku && hit.title !== hit.sku ? `<p><strong>SKU:</strong> ${hit.sku}</p>` : ''}
+                    <p><strong>Rank:</strong> #${hit.rank}</p>
+                    <p><strong>Match:</strong> ${hit.match_percent.toFixed(1)}%</p>
+                `;
+
+                prevBtn.disabled = currentImageIndex === 0;
+                nextBtn.disabled = currentImageIndex === currentResults.length - 1;
+            }
+
+            function showPrevImage() {
+                if (currentImageIndex > 0) {
+                    currentImageIndex--;
+                    updateModalContent();
+                }
+            }
+
+            function showNextImage() {
+                if (currentImageIndex < currentResults.length - 1) {
+                    currentImageIndex++;
+                    updateModalContent();
+                }
+            }
+
+            closeBtn.addEventListener('click', closeModal);
+            prevBtn.addEventListener('click', showPrevImage);
+            nextBtn.addEventListener('click', showNextImage);
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('show')) {
+                    switch(e.key) {
+                        case 'Escape':
+                            closeModal();
+                            break;
+                        case 'ArrowLeft':
+                            showPrevImage();
+                            break;
+                        case 'ArrowRight':
+                            showNextImage();
+                            break;
+                    }
                 }
             });
         });

@@ -11,7 +11,7 @@ CLIP_MODELS = {
 }
 
 # Set your desired model from the available ones
-SELECTED_MODEL = 'ViT-L/14'  # Change this to any model from the list
+SELECTED_MODEL = 'ViT-B/32'  # Change this to any model from the list
 
 # Model setup
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -24,4 +24,5 @@ def load_model():
     )
     model.eval()
     embed_dim = model.visual.output_dim if hasattr(model, "visual") else 512
+    print(SELECTED_MODEL, "loaded on", DEVICE)
     return model, preprocess, DEVICE, embed_dim
