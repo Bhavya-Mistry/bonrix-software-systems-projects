@@ -1612,42 +1612,16 @@
                 redoBtn.disabled = historyIndex >= editHistory.length - 1;
             }
 
-            // Slider event listeners - simplified for instant response
-            let adjustmentTimeout = null;
-            
-            function scheduleHistorySaveOnAdjust() {
-                if (adjustmentTimeout) clearTimeout(adjustmentTimeout);
-                
-                adjustmentTimeout = setTimeout(() => {
-                    const baseImage = editHistory[historyIndex];
-                    const filteredCanvas = document.createElement('canvas');
-                    filteredCanvas.width = baseImage.width;
-                    filteredCanvas.height = baseImage.height;
-                    const filteredCtx = filteredCanvas.getContext('2d');
-
-                    const brightness = 1 + parseInt(brightnessSlider.value) / 100;
-                    const contrast = 1 + parseInt(contrastSlider.value) / 100;
-                    filteredCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
-                    filteredCtx.drawImage(baseImage, 0, 0);
-                    
-                    saveToHistory(filteredCanvas);
-                    resetSliders();
-                }, 800);
-            }
-            
+            // Slider event listeners - removed automatic history saving for better UX
             brightnessSlider.addEventListener('input', (e) => {
                 brightnessValue.textContent = e.target.value;
                 drawEditor(); // Instant visual update
             });
-            
-            brightnessSlider.addEventListener('change', scheduleHistorySaveOnAdjust);
 
             contrastSlider.addEventListener('input', (e) => {
                 contrastValue.textContent = e.target.value;
                 drawEditor(); // Instant visual update
             });
-            
-            contrastSlider.addEventListener('change', scheduleHistorySaveOnAdjust);
 
             // History controls
             undoBtn.addEventListener('click', () => {
@@ -1725,26 +1699,42 @@
             editorCancelBtn.addEventListener('click', closeImageEditor);
 
             editorApplyBtn.addEventListener('click', () => {
-                if (adjustmentTimeout) clearTimeout(adjustmentTimeout);
-                
-                // Create final image with all adjustments
-                const baseImage = editHistory[historyIndex];
-                const finalCanvas = document.createElement('canvas');
-                finalCanvas.width = baseImage.width;
-                finalCanvas.height = baseImage.height;
-                const finalCtx = finalCanvas.getContext('2d');
-                
-                const brightness = 1 + parseInt(brightnessSlider.value) / 100;
-                const contrast = 1 + parseInt(contrastSlider.value) / 100;
-                finalCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
-                finalCtx.drawImage(baseImage, 0, 0);
+                try {
+                    console.log('Apply Changes button clicked');
+                    
+                    // Create final image with all adjustments
+                    const baseImage = editHistory[historyIndex];
+                    if (!baseImage) {
+                        console.error('No base image found in history');
+                        return;
+                    }
+                    
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = baseImage.width;
+                    finalCanvas.height = baseImage.height;
+                    const finalCtx = finalCanvas.getContext('2d');
+                    
+                    const brightness = 1 + parseInt(brightnessSlider.value) / 100;
+                    const contrast = 1 + parseInt(contrastSlider.value) / 100;
+                    console.log('Applying filters:', { brightness, contrast });
+                    
+                    finalCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
+                    finalCtx.drawImage(baseImage, 0, 0);
 
-                finalCanvas.toBlob((blob) => {
-                    currentEditedBlob = blob;
-                    const url = URL.createObjectURL(blob);
-                    imagePreview.src = url;
-                    closeImageEditor();
-                }, 'image/jpeg', 0.9);
+                    finalCanvas.toBlob((blob) => {
+                        if (blob) {
+                            console.log('Image blob created successfully');
+                            currentEditedBlob = blob;
+                            const url = URL.createObjectURL(blob);
+                            imagePreview.src = url;
+                            closeImageEditor();
+                        } else {
+                            console.error('Failed to create image blob');
+                        }
+                    }, 'image/jpeg', 0.9);
+                } catch (error) {
+                    console.error('Error in Apply Changes:', error);
+                }
             });
 
             // Update slider value displays
