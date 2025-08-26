@@ -4,7 +4,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
 import torch
 from retriever.models import load_model
 from retriever.embed import embed_image_pil, embed_text
@@ -13,6 +13,9 @@ from retriever.index import load_index, read_id_map, search
 # Gemini imports
 from google import genai
 from google.genai import types
+
+# REMBG import
+from rembg import remove
 
 app = FastAPI(title="Jewelry Image Search", version="0.1.0")
 
@@ -163,6 +166,69 @@ def process_with_gemini(image_path: str) -> bytes:
         print(f"Gemini API error: {e}")
         raise HTTPException(status_code=500, detail=f"Gemini processing failed: {str(e)}")
 
+def process_with_rembg(image_path: str) -> bytes:
+    """Remove background and create crisp catalog image with white background."""
+    try:
+        print(f"Processing image with REMBG: {image_path}")
+        
+        # Remove background
+        with open(image_path, 'rb') as f:
+            input_data = f.read()
+        
+        print("Removing background...")
+        output_data = remove(input_data)
+        img_no_bg = Image.open(io.BytesIO(output_data)).convert("RGBA")
+        
+        print(f"Background removed. Image size: {img_no_bg.size}")
+        
+        # Enhance the object before compositing for crisp catalog look
+        # 1. Sharpen the image for crispness
+        img_no_bg = img_no_bg.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=3))
+        
+        # 2. Enhance contrast and color
+        enhancer = ImageEnhance.Contrast(img_no_bg)
+        img_no_bg = enhancer.enhance(1.1)  # Slight contrast boost
+        
+        enhancer = ImageEnhance.Color(img_no_bg)
+        img_no_bg = enhancer.enhance(1.05)  # Slight color boost
+        
+        # 3. Clean up edges with slight blur on alpha channel
+        alpha = img_no_bg.split()[-1]  # Get alpha channel
+        alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.5))  # Smooth edges slightly
+        
+        # Recombine with cleaned alpha
+        img_no_bg = Image.merge('RGBA', img_no_bg.split()[:3] + (alpha,))
+        
+        # Create white background with slight padding for catalog look
+        padding = 50  # Add padding around object
+        new_size = (img_no_bg.width + padding*2, img_no_bg.height + padding*2)
+        white_bg = Image.new("RGBA", new_size, (255, 255, 255, 255))
+        
+        # Center the object on white background
+        offset = ((new_size[0] - img_no_bg.width) // 2, 
+                 (new_size[1] - img_no_bg.height) // 2)
+        white_bg.paste(img_no_bg, offset, img_no_bg)
+        
+        # Convert to RGB and apply final sharpening
+        final_image = white_bg.convert("RGB")
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=0.5, percent=100, threshold=2))
+        
+        print("Enhanced image for catalog quality")
+        
+        # Convert to bytes
+        img_byte_arr = io.BytesIO()
+        final_image.save(img_byte_arr, format='JPEG', quality=98, optimize=True, dpi=(300, 300))
+        img_byte_arr.seek(0)
+        
+        processed_bytes = img_byte_arr.read()
+        print(f"REMBG processing complete. Output size: {len(processed_bytes)} bytes")
+        
+        return processed_bytes
+        
+    except Exception as e:
+        print(f"REMBG processing error: {e}")
+        raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
+
 # --- FastAPI Endpoints ---
 @app.get("/")
 def read_index():
@@ -237,9 +303,48 @@ async def preprocess_gemini(file: UploadFile = File(...)):
 
 @app.post("/bgremover")
 async def preprocess_bgremover(file: UploadFile = File(...)):
-    content = await file.read()
-    # This would be a good place for a dedicated background removal library if needed
-    return Response(content=content, media_type=file.content_type)
+    """Remove background and create crisp catalog image with white background."""
+    try:
+        print("REMBG endpoint called")
+        
+        # Read the uploaded file
+        file_content = await file.read()
+        print(f"Received file: {file.filename}, size: {len(file_content)} bytes")
+        
+        # Create a temporary file to save the uploaded image
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+            temp_file.write(file_content)
+            temp_file_path = temp_file.name
+            print(f"Saved temp file: {temp_file_path}")
+        
+        try:
+            # Process with REMBG
+            print("Processing with REMBG...")
+            processed_image_bytes = process_with_rembg(temp_file_path)
+            print(f"REMBG processing complete: {len(processed_image_bytes)} bytes")
+            
+            # Return the processed image
+            return Response(
+                content=processed_image_bytes,
+                media_type="image/jpeg",
+                headers={
+                    "Content-Disposition": "inline; filename=rembg_processed.jpg"
+                }
+            )
+            
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+                print(f"Cleaned up temp file: {temp_file_path}")
+            except OSError as e:
+                print(f"Error cleaning up temp file: {e}")
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in REMBG preprocessing: {e}")
+        raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
 
 @app.post("/quin")
 async def preprocess_quin(file: UploadFile = File(...)):
