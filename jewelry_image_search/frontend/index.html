@@ -110,7 +110,7 @@
             font-size: 1rem;
             transition: border-color 0.2s ease;
             box-sizing: border-box;
-            background-color: #fff; /* Ensure select has a background */
+            background-color: #fff;
         }
 
         .text-input:focus {
@@ -313,7 +313,7 @@
             padding: 1rem 1.5rem;
             border-bottom: 1px solid #e9ecef;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             background: #f8f9fa;
         }
@@ -359,30 +359,10 @@
         .editor-canvas {
             border: 1px solid #dee2e6;
             border-radius: 8px;
-            max-width: calc(100% - 2rem);
-            max-height: calc(100% - 2rem);
-            min-width: 100px;
-            min-height: 100px;
-            cursor: crosshair;
+            max-width: 100%;
+            max-height: 100%;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .crop-overlay {
-            position: absolute;
-            border: 2px solid #007bff;
-            background: rgba(0, 123, 255, 0.1);
-            display: none;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .crop-handles {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: #007bff;
-            border: 2px solid white;
-            border-radius: 50%;
+            cursor: crosshair;
         }
 
         .editor-controls {
@@ -678,7 +658,7 @@
             max-height: 85vh;
             margin: auto;
             animation: slideIn 0.3s ease;
-            padding-top: 60px; /* Space for close button */
+            padding-top: 60px;
         }
 
         .modal-image {
@@ -878,7 +858,6 @@
                 <!-- Image Search Tab -->
                 <div id="image-tab" class="tab-content active">
                     <h3>Upload Image</h3>
-                    <!-- REPLACED: Dropdown with Buttons -->
                     <div class="action-buttons-container" style="margin-bottom: 1.5rem;">
                         <label style="font-weight: 500; color: #495057; display: block; margin-bottom: 0.75rem;">Select Action:</label>
                         <div class="action-buttons">
@@ -979,18 +958,16 @@
             <div class="editor-body">
                 <div class="editor-canvas-container">
                     <canvas id="editor-canvas" class="editor-canvas"></canvas>
-                    <div id="crop-overlay" class="crop-overlay"></div>
                 </div>
                 
                 <div class="editor-controls">
                     <!-- Crop Section -->
                     <div class="editor-section">
                         <h4>Crop (1:1 Ratio)</h4>
-                        <div id="crop-instruction" class="editor-instruction" style="display: none; font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem;">
-                            Drag on the image to select a square area to crop.
+                        <div id="crop-instruction" class="editor-instruction" style="font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem;">
+                            Drag to move the square, drag corners to resize.
                         </div>
-                        <button id="crop-toggle" class="editor-button secondary">Start Cropping</button>
-                        <button id="crop-apply" class="editor-button primary" style="display: none;">Apply Crop</button>
+                        <button id="crop-apply" class="editor-button primary">Apply Crop</button>
                     </div>
                     
                     <!-- Adjustments Section -->
@@ -1012,8 +989,6 @@
                                 <span id="contrast-value" class="editor-slider-value">0</span>
                             </div>
                         </div>
-                        
-
                     </div>
                     
                     <!-- History Section -->
@@ -1081,12 +1056,9 @@
             const editorCloseBtn = document.getElementById('editor-close-btn');
             const editorCancelBtn = document.getElementById('editor-cancel-btn');
             const editorApplyBtn = document.getElementById('editor-apply-btn');
-            const cropOverlay = document.getElementById('crop-overlay');
             
             // Editor controls
-            const cropToggleBtn = document.getElementById('crop-toggle');
             const cropApplyBtn = document.getElementById('crop-apply');
-            const cropInstruction = document.getElementById('crop-instruction');
             const brightnessSlider = document.getElementById('brightness-slider');
             const brightnessValue = document.getElementById('brightness-value');
             const contrastSlider = document.getElementById('contrast-slider');
@@ -1104,28 +1076,33 @@
             const prevBtn = document.getElementById('prev-button');
             const nextBtn = document.getElementById('next-button');
             
-            // MODIFIED: Action buttons and related controls
             const actionButtons = document.querySelectorAll('.action-button');
             const quantitySliderContainer = document.getElementById('quantity-slider').closest('.slider-container');
             const accuracySliderContainer = document.getElementById('accuracy-slider').closest('.slider-container');
 
             // Store current search state
             let currentSearchMode = 'image';
-            let selectedEndpoint = '/search/image'; // NEW: State for selected endpoint
+            let selectedEndpoint = '/search/image';
             let currentResults = [];
             let currentImageIndex = 0;
 
-            // Image editor state
+            // --- FIXED: Image Cropper State ---
             let editorCtx = null;
-            let originalImageData = null;
+            let originalImage = null;
             let editHistory = [];
             let historyIndex = -1;
-            let isCropping = false;
-            let cropStart = null;
-            let cropEnd = null;
             let currentEditedBlob = null;
-            let imageRect = null; // Store the actual image bounds within canvas
-            let isMouseDown = false; // Track mouse state
+            
+            // Crop box state
+            let cropBox = { x: 50, y: 50, width: 200, height: 200 };
+            let isDragging = false;
+            let isResizing = false;
+            let resizeHandle = null;
+            let lastMousePos = { x: 0, y: 0 };
+            let dragOffset = { x: 0, y: 0 };
+            
+            const HANDLE_SIZE = 8;
+            const MIN_CROP_SIZE = 30;
 
             // Initialize canvas context
             editorCtx = editorCanvas.getContext('2d');
@@ -1139,22 +1116,16 @@
             });
 
             function switchTab(tabName) {
-                // Update buttons
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
 
-                // Update content
                 tabContents.forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
 
-                // Update current mode
                 currentSearchMode = tabName;
-
-                // Clear results and query display when switching tabs
                 resultsContainer.innerHTML = '';
                 currentQueryDiv.style.display = 'none';
                 
-                // Update search button text and default accuracy
                 if (tabName === 'text') {
                     searchButton.textContent = 'Search by Description';
                     if (accuracySlider.value == 90) {
@@ -1258,52 +1229,67 @@
                 currentQueryDiv.style.display = 'none';
             });
 
-            // Image Editor Functions
+            // --- COMPLETELY REWRITTEN Image Editor Functions ---
+
             function openImageEditor() {
                 const img = new Image();
                 img.onload = function() {
-                    // Set canvas size to fit image while maintaining aspect ratio
-                    const maxWidth = 500;
-                    const maxHeight = 400;
-                    let { width, height } = img;
+                    originalImage = img;
                     
-                    if (width > maxWidth || height > maxHeight) {
-                        const ratio = Math.min(maxWidth / width, maxHeight / height);
-                        width *= ratio;
-                        height *= ratio;
-                    }
-                    
-                    editorCanvas.width = width;
-                    editorCanvas.height = height;
-                    
-                    // Store image bounds for cropping
-                    imageRect = { x: 0, y: 0, width, height };
-                    
-                    // Draw image and store original data
-                    editorCtx.drawImage(img, 0, 0, width, height);
-                    originalImageData = editorCtx.getImageData(0, 0, width, height);
-                    
-                    // Initialize edit history with original image
-                    const initialEntry = {
-                        imageData: editorCtx.getImageData(0, 0, width, height),
-                        width: width,
-                        height: height
-                    };
-                    editHistory = [initialEntry];
-                    historyIndex = 0;
-                    updateHistoryButtons();
-                    
-                    console.log('Initialized editor with image size:', width, 'x', height);
-                    
-                    // Reset controls
-                    resetSliders();
-                    
-                    // Reset canvas display scaling
-                    editorCanvas.style.width = '';
-                    editorCanvas.style.height = '';
-                    
+                    // Show modal first to ensure proper container dimensions
                     editorModal.classList.add('show');
                     document.body.style.overflow = 'hidden';
+                    
+                    // Small delay to ensure modal is fully rendered
+                    setTimeout(() => {
+                        // Fit image into canvas container with proper sizing
+                        const container = editorCanvas.parentElement;
+                        const containerRect = container.getBoundingClientRect();
+                        const maxWidth = Math.min(containerRect.width - 100, 800);
+                        const maxHeight = Math.min(containerRect.height - 100, 600);
+                        
+                        // Calculate display dimensions maintaining aspect ratio
+                        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+                        const displayWidth = img.width * scale;
+                        const displayHeight = img.height * scale;
+
+                        editorCanvas.width = displayWidth;
+                        editorCanvas.height = displayHeight;
+                        editorCanvas.style.width = displayWidth + 'px';
+                        editorCanvas.style.height = displayHeight + 'px';
+
+                        // Initialize crop box in center - 80% of smaller dimension
+                        const cropSize = Math.min(displayWidth, displayHeight) * 0.8;
+                        cropBox = {
+                            x: (displayWidth - cropSize) / 2,
+                            y: (displayHeight - cropSize) / 2,
+                            width: cropSize,
+                            height: cropSize
+                        };
+
+                        // Reset all interaction states
+                        isDragging = false;
+                        isResizing = false;
+                        resizeHandle = null;
+                        lastMousePos = { x: 0, y: 0 };
+                        dragOffset = { x: 0, y: 0 };
+
+                        // Initialize history with original
+                        const originalCanvas = document.createElement('canvas');
+                        originalCanvas.width = img.width;
+                        originalCanvas.height = img.height;
+                        originalCanvas.getContext('2d').drawImage(img, 0, 0);
+                        
+                        editHistory = [originalCanvas];
+                        historyIndex = 0;
+                        updateHistoryButtons();
+                        resetSliders();
+                        
+                        // Force a repaint and draw
+                        requestAnimationFrame(() => {
+                            drawEditor();
+                        });
+                    }, 50);
                 };
                 img.src = imagePreview.src;
             }
@@ -1311,16 +1297,285 @@
             function closeImageEditor() {
                 editorModal.classList.remove('show');
                 document.body.style.overflow = 'auto';
-                isCropping = false;
-                cropOverlay.style.display = 'none';
-                cropToggleBtn.textContent = 'Start Cropping';
-                cropToggleBtn.classList.remove('danger');
-                cropToggleBtn.classList.add('secondary');
-                cropApplyBtn.style.display = 'none';
-                cropInstruction.style.display = 'none';
-                editorCanvas.style.cursor = 'default';
-                cropStart = null;
-                cropEnd = null;
+                isDragging = false;
+                isResizing = false;
+                resizeHandle = null;
+                editorCanvas.style.cursor = 'crosshair';
+            }
+
+            function drawEditor() {
+                if (!editHistory[historyIndex]) return;
+
+                const currentImage = editHistory[historyIndex];
+                
+                // Get current filter values
+                const brightness = 1 + parseInt(brightnessSlider.value) / 100;
+                const contrast = 1 + parseInt(contrastSlider.value) / 100;
+                const filterString = `brightness(${brightness}) contrast(${contrast})`;
+                
+                // Clear canvas
+                editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+                
+                // Apply filters and draw the full image
+                editorCtx.filter = filterString;
+                editorCtx.drawImage(currentImage, 0, 0, editorCanvas.width, editorCanvas.height);
+                editorCtx.filter = 'none';
+
+                // Draw semi-transparent overlay everywhere
+                editorCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                editorCtx.fillRect(0, 0, editorCanvas.width, editorCanvas.height);
+
+                // Clear the crop area to show the filtered image
+                editorCtx.save();
+                editorCtx.globalCompositeOperation = 'destination-out';
+                editorCtx.fillStyle = 'rgba(255, 255, 255, 1)';
+                editorCtx.fillRect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
+                editorCtx.restore();
+
+                // Redraw the filtered image in the crop area
+                editorCtx.save();
+                editorCtx.beginPath();
+                editorCtx.rect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
+                editorCtx.clip();
+                editorCtx.filter = filterString;
+                editorCtx.drawImage(currentImage, 0, 0, editorCanvas.width, editorCanvas.height);
+                editorCtx.filter = 'none';
+                editorCtx.restore();
+
+                // Draw crop box border
+                editorCtx.strokeStyle = '#ffffff';
+                editorCtx.lineWidth = 2;
+                editorCtx.setLineDash([]);
+                editorCtx.strokeRect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
+
+                // Draw grid lines
+                editorCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                editorCtx.lineWidth = 1;
+                const gridX1 = cropBox.x + cropBox.width / 3;
+                const gridX2 = cropBox.x + (cropBox.width * 2) / 3;
+                const gridY1 = cropBox.y + cropBox.height / 3;
+                const gridY2 = cropBox.y + (cropBox.height * 2) / 3;
+
+                editorCtx.beginPath();
+                editorCtx.moveTo(gridX1, cropBox.y);
+                editorCtx.lineTo(gridX1, cropBox.y + cropBox.height);
+                editorCtx.moveTo(gridX2, cropBox.y);
+                editorCtx.lineTo(gridX2, cropBox.y + cropBox.height);
+                editorCtx.moveTo(cropBox.x, gridY1);
+                editorCtx.lineTo(cropBox.x + cropBox.width, gridY1);
+                editorCtx.moveTo(cropBox.x, gridY2);
+                editorCtx.lineTo(cropBox.x + cropBox.width, gridY2);
+                editorCtx.stroke();
+
+                // Draw resize handles
+                const handles = [
+                    { x: cropBox.x, y: cropBox.y, cursor: 'nw-resize', name: 'nw' },
+                    { x: cropBox.x + cropBox.width, y: cropBox.y, cursor: 'ne-resize', name: 'ne' },
+                    { x: cropBox.x, y: cropBox.y + cropBox.height, cursor: 'sw-resize', name: 'sw' },
+                    { x: cropBox.x + cropBox.width, y: cropBox.y + cropBox.height, cursor: 'se-resize', name: 'se' }
+                ];
+
+                handles.forEach(handle => {
+                    editorCtx.fillStyle = '#ffffff';
+                    editorCtx.strokeStyle = '#000000';
+                    editorCtx.lineWidth = 1;
+                    editorCtx.fillRect(handle.x - HANDLE_SIZE/2, handle.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+                    editorCtx.strokeRect(handle.x - HANDLE_SIZE/2, handle.y - HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+                });
+            }
+
+            function getMousePos(e) {
+                const rect = editorCanvas.getBoundingClientRect();
+                const scaleX = editorCanvas.width / rect.width;
+                const scaleY = editorCanvas.height / rect.height;
+                
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+
+            function getResizeHandle(mousePos) {
+                const handles = [
+                    { x: cropBox.x, y: cropBox.y, cursor: 'nw-resize', name: 'nw' },
+                    { x: cropBox.x + cropBox.width, y: cropBox.y, cursor: 'ne-resize', name: 'ne' },
+                    { x: cropBox.x, y: cropBox.y + cropBox.height, cursor: 'sw-resize', name: 'sw' },
+                    { x: cropBox.x + cropBox.width, y: cropBox.y + cropBox.height, cursor: 'se-resize', name: 'se' }
+                ];
+
+                for (let handle of handles) {
+                    if (Math.abs(mousePos.x - handle.x) <= HANDLE_SIZE * 2 && 
+                        Math.abs(mousePos.y - handle.y) <= HANDLE_SIZE * 2) {
+                        return handle;
+                    }
+                }
+                return null;
+            }
+
+            function isInsideCropBox(mousePos) {
+                return mousePos.x >= cropBox.x && mousePos.x <= cropBox.x + cropBox.width &&
+                       mousePos.y >= cropBox.y && mousePos.y <= cropBox.y + cropBox.height;
+            }
+
+            function constrainCropBox() {
+                // Keep crop box within canvas bounds
+                cropBox.x = Math.max(0, Math.min(cropBox.x, editorCanvas.width - cropBox.width));
+                cropBox.y = Math.max(0, Math.min(cropBox.y, editorCanvas.height - cropBox.height));
+                
+                // Maintain minimum size
+                cropBox.width = Math.max(MIN_CROP_SIZE, cropBox.width);
+                cropBox.height = Math.max(MIN_CROP_SIZE, cropBox.height);
+                
+                // Keep square aspect ratio
+                const minDimension = Math.min(cropBox.width, cropBox.height);
+                cropBox.width = minDimension;
+                cropBox.height = minDimension;
+                
+                // Final boundary check after making square
+                if (cropBox.x + cropBox.width > editorCanvas.width) {
+                    cropBox.x = editorCanvas.width - cropBox.width;
+                }
+                if (cropBox.y + cropBox.height > editorCanvas.height) {
+                    cropBox.y = editorCanvas.height - cropBox.height;
+                }
+            }
+
+            // Mouse event handlers
+            editorCanvas.addEventListener('mousedown', (e) => {
+                const mousePos = getMousePos(e);
+                lastMousePos = mousePos;
+                
+                const handle = getResizeHandle(mousePos);
+                
+                if (handle) {
+                    isResizing = true;
+                    resizeHandle = handle.name;
+                    editorCanvas.style.cursor = handle.cursor;
+                } else if (isInsideCropBox(mousePos)) {
+                    isDragging = true;
+                    dragOffset = {
+                        x: mousePos.x - cropBox.x,
+                        y: mousePos.y - cropBox.y
+                    };
+                    editorCanvas.style.cursor = 'move';
+                }
+            });
+
+            editorCanvas.addEventListener('mousemove', (e) => {
+                const mousePos = getMousePos(e);
+                
+                if (isResizing && resizeHandle) {
+                    const deltaX = mousePos.x - lastMousePos.x;
+                    const deltaY = mousePos.y - lastMousePos.y;
+                    
+                    // Calculate new dimensions based on handle
+                    switch (resizeHandle) {
+                        case 'nw':
+                            const nwDelta = Math.min(deltaX, deltaY);
+                            cropBox.x += nwDelta;
+                            cropBox.y += nwDelta;
+                            cropBox.width -= nwDelta;
+                            cropBox.height -= nwDelta;
+                            break;
+                        case 'ne':
+                            const neDelta = Math.max(deltaX, -deltaY);
+                            cropBox.y -= neDelta;
+                            cropBox.width += neDelta;
+                            cropBox.height += neDelta;
+                            break;
+                        case 'sw':
+                            const swDelta = Math.max(-deltaX, deltaY);
+                            cropBox.x -= swDelta;
+                            cropBox.width += swDelta;
+                            cropBox.height += swDelta;
+                            break;
+                        case 'se':
+                            const seDelta = Math.max(deltaX, deltaY);
+                            cropBox.width += seDelta;
+                            cropBox.height += seDelta;
+                            break;
+                    }
+                    
+                    constrainCropBox();
+                    drawEditor();
+                    
+                } else if (isDragging) {
+                    cropBox.x = mousePos.x - dragOffset.x;
+                    cropBox.y = mousePos.y - dragOffset.y;
+                    constrainCropBox();
+                    drawEditor();
+                    
+                } else {
+                    // Update cursor based on hover
+                    const handle = getResizeHandle(mousePos);
+                    if (handle) {
+                        editorCanvas.style.cursor = handle.cursor;
+                    } else if (isInsideCropBox(mousePos)) {
+                        editorCanvas.style.cursor = 'move';
+                    } else {
+                        editorCanvas.style.cursor = 'crosshair';
+                    }
+                }
+                
+                lastMousePos = mousePos;
+            });
+
+            editorCanvas.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+                resizeHandle = null;
+                editorCanvas.style.cursor = 'crosshair';
+            });
+
+            editorCanvas.addEventListener('mouseleave', () => {
+                isDragging = false;
+                isResizing = false;
+                resizeHandle = null;
+                editorCanvas.style.cursor = 'crosshair';
+            });
+
+            cropApplyBtn.addEventListener('click', () => {
+                applyCrop();
+            });
+
+            function applyCrop() {
+                const sourceImage = editHistory[historyIndex];
+                
+                // Calculate scaling factors
+                const scaleX = sourceImage.width / editorCanvas.width;
+                const scaleY = sourceImage.height / editorCanvas.height;
+
+                // Convert crop box coordinates to source image coordinates
+                const sx = cropBox.x * scaleX;
+                const sy = cropBox.y * scaleY;
+                const sSize = cropBox.width * scaleX; // Since it's square, width = height
+
+                // Create a new canvas for the cropped image
+                const croppedCanvas = document.createElement('canvas');
+                croppedCanvas.width = sSize;
+                croppedCanvas.height = sSize;
+                const croppedCtx = croppedCanvas.getContext('2d');
+
+                // Draw the cropped portion
+                croppedCtx.drawImage(sourceImage, sx, sy, sSize, sSize, 0, 0, sSize, sSize);
+                
+                // Update editor canvas to show the cropped result
+                const maxDisplaySize = Math.min(editorCanvas.parentElement.offsetWidth - 100, 600);
+                const displaySize = Math.min(sSize, maxDisplaySize);
+                
+                editorCanvas.width = displaySize;
+                editorCanvas.height = displaySize;
+                editorCanvas.style.width = displaySize + 'px';
+                editorCanvas.style.height = displaySize + 'px';
+                
+                editorCtx.drawImage(croppedCanvas, 0, 0, displaySize, displaySize);
+
+                // Reset crop box to cover the entire new image
+                cropBox = { x: 0, y: 0, width: displaySize, height: displaySize };
+                
+                // Save this new state to history
+                saveToHistory(croppedCanvas);
+                drawEditor();
             }
 
             function resetSliders() {
@@ -1330,504 +1585,138 @@
                 contrastValue.textContent = '0';
             }
 
-            function saveToHistory() {
-                // Remove any future history if we're not at the end
+            function saveToHistory(canvasToSave) {
                 if (historyIndex < editHistory.length - 1) {
                     editHistory = editHistory.slice(0, historyIndex + 1);
                 }
                 
-                // Add current state - need to copy the canvas data AND dimensions
-                const currentImageData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
-                const historyEntry = {
-                    imageData: currentImageData,
-                    width: editorCanvas.width,
-                    height: editorCanvas.height
-                };
-                editHistory.push(historyEntry);
+                if (!canvasToSave) {
+                    canvasToSave = document.createElement('canvas');
+                    canvasToSave.width = editHistory[historyIndex].width;
+                    canvasToSave.height = editHistory[historyIndex].height;
+                    canvasToSave.getContext('2d').drawImage(editHistory[historyIndex], 0, 0);
+                }
+
+                editHistory.push(canvasToSave);
                 historyIndex++;
                 
-                console.log('Saved to history, index:', historyIndex, 'total history items:', editHistory.length);
-                console.log('Saved canvas size:', historyEntry.width, 'x', historyEntry.height);
-                
-                // Limit history size
                 if (editHistory.length > 20) {
                     editHistory.shift();
                     historyIndex--;
                 }
-                
                 updateHistoryButtons();
             }
 
             function updateHistoryButtons() {
-                const canUndo = historyIndex > 0;
-                const canRedo = historyIndex < editHistory.length - 1;
-                
-                undoBtn.disabled = !canUndo;
-                redoBtn.disabled = !canRedo;
-                
-                console.log('History buttons updated:', { 
-                    historyIndex, 
-                    totalHistory: editHistory.length, 
-                    canUndo, 
-                    canRedo 
-                });
+                undoBtn.disabled = historyIndex <= 0;
+                redoBtn.disabled = historyIndex >= editHistory.length - 1;
             }
 
-            function scaleCanvasForDisplay() {
-                // After cropping, the canvas might be very small, so let's scale it up for better visibility
-                const container = document.querySelector('.editor-canvas-container');
-                const containerRect = container.getBoundingClientRect();
-                const maxDisplayWidth = containerRect.width - 100; // Leave some padding
-                const maxDisplayHeight = containerRect.height - 100;
-                
-                const currentWidth = editorCanvas.width;
-                const currentHeight = editorCanvas.height;
-                
-                // Calculate scale to fit nicely in the container (but not too big)
-                const scaleX = Math.min(maxDisplayWidth / currentWidth, 3); // Max 3x scale
-                const scaleY = Math.min(maxDisplayHeight / currentHeight, 3);
-                const scale = Math.min(scaleX, scaleY, 3);
-                
-                if (scale > 1.1) { // Only scale if it makes a meaningful difference
-                    editorCanvas.style.width = (currentWidth * scale) + 'px';
-                    editorCanvas.style.height = (currentHeight * scale) + 'px';
-                    console.log(`Scaled canvas display by ${scale.toFixed(2)}x for better visibility`);
-                } else {
-                    editorCanvas.style.width = '';
-                    editorCanvas.style.height = '';
-                }
-            }
-
-            function applyFilters() {
-                if (!originalImageData) return;
-                
-                // Start with the current "clean" state from history if we have adjustments
-                let baseImageData;
-                if (historyIndex >= 0 && editHistory[historyIndex]) {
-                    const currentHistoryEntry = editHistory[historyIndex];
-                    baseImageData = currentHistoryEntry.imageData;
-                } else {
-                    baseImageData = originalImageData;
-                }
-                
-                // Create a new image data object for manipulation
-                const imageData = editorCtx.createImageData(baseImageData);
-                const data = imageData.data;
-                const sourceData = baseImageData.data;
-                
-                // Get filter values
-                const brightness = parseInt(brightnessSlider.value);
-                const contrast = parseInt(contrastSlider.value);
-                
-                for (let i = 0; i < data.length; i += 4) {
-                    let r = sourceData[i];
-                    let g = sourceData[i + 1];
-                    let b = sourceData[i + 2];
-                    
-                    // Apply brightness
-                    if (brightness !== 0) {
-                        r = Math.max(0, Math.min(255, r + brightness));
-                        g = Math.max(0, Math.min(255, g + brightness));
-                        b = Math.max(0, Math.min(255, b + brightness));
-                    }
-                    
-                    // Apply contrast
-                    if (contrast !== 0) {
-                        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                        r = Math.max(0, Math.min(255, factor * (r - 128) + 128));
-                        g = Math.max(0, Math.min(255, factor * (g - 128) + 128));
-                        b = Math.max(0, Math.min(255, factor * (b - 128) + 128));
-                    }
-                    
-                    data[i] = r;
-                    data[i + 1] = g;
-                    data[i + 2] = b;
-                    data[i + 3] = sourceData[i + 3]; // Keep original alpha
-                }
-                
-                editorCtx.putImageData(imageData, 0, 0);
-            }
-
-
-
-            // Crop functionality
-            cropToggleBtn.addEventListener('click', () => {
-                if (!isCropping) {
-                    isCropping = true;
-                    isMouseDown = false;
-                    cropToggleBtn.textContent = 'Cancel Crop';
-                    cropToggleBtn.classList.remove('secondary');
-                    cropToggleBtn.classList.add('danger');
-                    cropApplyBtn.style.display = 'block';
-                    cropInstruction.style.display = 'block';
-                    editorCanvas.style.cursor = 'crosshair';
-                    
-                    // Clear any existing crop selection
-                    cropStart = null;
-                    cropEnd = null;
-                    cropOverlay.style.display = 'none';
-                    console.log('Crop mode started');
-                } else {
-                    isCropping = false;
-                    isMouseDown = false;
-                    cropToggleBtn.textContent = 'Start Cropping';
-                    cropToggleBtn.classList.remove('danger');
-                    cropToggleBtn.classList.add('secondary');
-                    cropApplyBtn.style.display = 'none';
-                    cropInstruction.style.display = 'none';
-                    cropOverlay.style.display = 'none';
-                    editorCanvas.style.cursor = 'default';
-                    cropStart = null;
-                    cropEnd = null;
-                    console.log('Crop mode cancelled');
-                }
-            });
-
-            cropApplyBtn.addEventListener('click', () => {
-                console.log('Apply crop clicked. Current state:', { 
-                    isCropping, 
-                    cropStart, 
-                    cropEnd,
-                    hasSelection: !!(cropStart && cropEnd)
-                });
-                
-                if (cropStart && cropEnd) {
-                    console.log('Valid selection found, applying crop...');
-                    applyCrop();
-                } else {
-                    console.log('No valid crop selection');
-                    alert('Please select an area to crop first by dragging on the image.');
-                }
-            });
-
-            editorCanvas.addEventListener('mousedown', (e) => {
-                if (!isCropping || !imageRect) return;
-                
-                const rect = editorCanvas.getBoundingClientRect();
-                const scaleX = editorCanvas.width / rect.width;
-                const scaleY = editorCanvas.height / rect.height;
-                
-                const x = (e.clientX - rect.left) * scaleX;
-                const y = (e.clientY - rect.top) * scaleY;
-                
-                console.log('Mouse down at:', { x, y, canvasSize: { w: editorCanvas.width, h: editorCanvas.height } });
-                
-                // Check if click is within image bounds
-                if (x >= imageRect.x && x <= imageRect.x + imageRect.width &&
-                    y >= imageRect.y && y <= imageRect.y + imageRect.height) {
-                    isMouseDown = true;
-                    cropStart = { x: Math.floor(x), y: Math.floor(y) };
-                    cropEnd = null;
-                    cropOverlay.style.display = 'none'; // Hide overlay until we have a selection
-                    console.log('Crop start set:', cropStart);
-                    e.preventDefault();
-                }
-            });
-
-            editorCanvas.addEventListener('mousemove', (e) => {
-                if (!isCropping || !cropStart || !imageRect || !isMouseDown) return;
-                
-                const rect = editorCanvas.getBoundingClientRect();
-                const scaleX = editorCanvas.width / rect.width;
-                const scaleY = editorCanvas.height / rect.height;
-                
-                const x = (e.clientX - rect.left) * scaleX;
-                const y = (e.clientY - rect.top) * scaleY;
-                
-                // Constrain to image bounds
-                const constrainedX = Math.max(imageRect.x, Math.min(imageRect.x + imageRect.width, x));
-                const constrainedY = Math.max(imageRect.y, Math.min(imageRect.y + imageRect.height, y));
-                
-                // Calculate square crop area (1:1 ratio)
-                const deltaX = constrainedX - cropStart.x;
-                const deltaY = constrainedY - cropStart.y;
-                const size = Math.min(Math.abs(deltaX), Math.abs(deltaY));
-                
-                if (size < 5) return; // Minimum size to show overlay
-                
-                // Determine direction and calculate end point
-                const signX = deltaX >= 0 ? 1 : -1;
-                const signY = deltaY >= 0 ? 1 : -1;
-                let endX = cropStart.x + (size * signX);
-                let endY = cropStart.y + (size * signY);
-                
-                // Ensure crop area stays within image bounds
-                endX = Math.max(imageRect.x, Math.min(imageRect.x + imageRect.width, endX));
-                endY = Math.max(imageRect.y, Math.min(imageRect.y + imageRect.height, endY));
-                
-                cropEnd = { x: Math.floor(endX), y: Math.floor(endY) };
-                console.log('Crop selection updated:', { cropStart, cropEnd, size });
-                updateCropOverlay();
-            });
-
-            editorCanvas.addEventListener('mouseup', (e) => {
-                if (!isCropping) return;
-                
-                isMouseDown = false;
-                
-                if (cropStart && cropEnd) {
-                    const width = Math.abs(cropEnd.x - cropStart.x);
-                    const height = Math.abs(cropEnd.y - cropStart.y);
-                    const size = Math.min(width, height);
-                    
-                    console.log('Mouse up - final crop selection:', { cropStart, cropEnd, size });
-                    
-                    if (size < 5) {
-                        // Reset if selection is too small
-                        cropStart = null;
-                        cropEnd = null;
-                        cropOverlay.style.display = 'none';
-                        console.log('Selection too small, reset');
-                    } else {
-                        console.log('Valid crop selection ready for apply');
-                    }
-                } else {
-                    console.log('No valid crop selection on mouse up');
-                }
-            });
-            
-            // Hide crop overlay when clicking outside canvas, but don't reset selection
-            document.addEventListener('mousedown', (e) => {
-                if (isCropping && !editorCanvas.contains(e.target) && !e.target.closest('.editor-controls')) {
-                    isMouseDown = false;
-                    // Don't reset crop selection, just stop dragging
-                }
-            });
-
-            function updateCropOverlay() {
-                if (!cropStart || !cropEnd) {
-                    cropOverlay.style.display = 'none';
-                    return;
-                }
-                
-                const canvasRect = editorCanvas.getBoundingClientRect();
-                const containerRect = editorCanvas.parentElement.getBoundingClientRect();
-                
-                const scaleX = canvasRect.width / editorCanvas.width;
-                const scaleY = canvasRect.height / editorCanvas.height;
-                
-                const left = Math.min(cropStart.x, cropEnd.x) * scaleX;
-                const top = Math.min(cropStart.y, cropEnd.y) * scaleY;
-                const width = Math.abs(cropEnd.x - cropStart.x) * scaleX;
-                const height = Math.abs(cropEnd.y - cropStart.y) * scaleY;
-                
-                // Position relative to canvas within the container
-                const canvasOffsetX = canvasRect.left - containerRect.left;
-                const canvasOffsetY = canvasRect.top - containerRect.top;
-                
-                cropOverlay.style.left = (canvasOffsetX + left) + 'px';
-                cropOverlay.style.top = (canvasOffsetY + top) + 'px';
-                cropOverlay.style.width = width + 'px';
-                cropOverlay.style.height = height + 'px';
-                cropOverlay.style.display = 'block';
-            }
-
-            function applyCrop() {
-                if (!cropStart || !cropEnd) {
-                    console.log('No crop selection found:', { cropStart, cropEnd });
-                    alert('Please make a crop selection first by dragging on the image.');
-                    return;
-                }
-                
-                // Ensure we have integer coordinates
-                const left = Math.floor(Math.min(cropStart.x, cropEnd.x));
-                const top = Math.floor(Math.min(cropStart.y, cropEnd.y));
-                const width = Math.floor(Math.abs(cropEnd.x - cropStart.x));
-                const height = Math.floor(Math.abs(cropEnd.y - cropStart.y));
-                const size = Math.floor(Math.min(width, height)); // Ensure perfect square
-                
-                console.log('Crop selection:', { cropStart, cropEnd, left, top, width, height, size });
-                
-                if (size < 10) {
-                    console.log('Crop area too small:', size);
-                    alert(`Crop area too small (${size}px). Please make a larger selection.`);
-                    return;
-                }
-                
-                // Make sure crop area is within canvas bounds
-                const maxLeft = editorCanvas.width - size;
-                const maxTop = editorCanvas.height - size;
-                const clampedLeft = Math.max(0, Math.min(left, maxLeft));
-                const clampedTop = Math.max(0, Math.min(top, maxTop));
-                
-                console.log('Final crop coordinates:', { 
-                    left: clampedLeft, 
-                    top: clampedTop, 
-                    size, 
-                    canvasWidth: editorCanvas.width, 
-                    canvasHeight: editorCanvas.height 
-                });
-                
-                try {
-                    // First, let's create a new canvas to hold the cropped image
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = size;
-                    tempCanvas.height = size;
-                    
-                    // Draw the cropped portion onto the temp canvas
-                    tempCtx.drawImage(editorCanvas, clampedLeft, clampedTop, size, size, 0, 0, size, size);
-                    
-                    console.log('Created temp canvas with cropped image');
-                    
-                    // Now update the main canvas
-                    editorCanvas.width = size;
-                    editorCanvas.height = size;
-                    
-                    // Clear the canvas and draw the cropped image
-                    editorCtx.clearRect(0, 0, size, size);
-                    editorCtx.drawImage(tempCanvas, 0, 0);
-                    
-                    // Update image rect
-                    imageRect = { x: 0, y: 0, width: size, height: size };
-                    
-                    // Update original image data for further edits
-                    originalImageData = editorCtx.getImageData(0, 0, size, size);
-                    
-                    console.log('Successfully applied crop. New canvas size:', size, 'x', size);
-                    
-                    // Save to history
-                    saveToHistory();
-                    
-                    // Scale canvas for better display after crop
-                    setTimeout(() => {
-                        scaleCanvasForDisplay();
-                    }, 50);
-                    
-                } catch (error) {
-                    console.error('Error during crop:', error);
-                    alert('Error applying crop. Please try again.');
-                    return;
-                }
-                
-                // Reset crop mode
-                isCropping = false;
-                cropToggleBtn.textContent = 'Start Cropping';
-                cropToggleBtn.classList.remove('danger');
-                cropToggleBtn.classList.add('secondary');
-                cropApplyBtn.style.display = 'none';
-                cropInstruction.style.display = 'none';
-                cropOverlay.style.display = 'none';
-                editorCanvas.style.cursor = 'default';
-                cropStart = null;
-                cropEnd = null;
-                
-                console.log('Crop completed successfully!');
-            }
-
-            // Slider event listeners with history tracking
+            // Slider event listeners - simplified for instant response
             let adjustmentTimeout = null;
             
-            function scheduleHistorySave() {
-                // Clear existing timeout
-                if (adjustmentTimeout) {
-                    clearTimeout(adjustmentTimeout);
-                }
+            function scheduleHistorySaveOnAdjust() {
+                if (adjustmentTimeout) clearTimeout(adjustmentTimeout);
                 
-                // Save to history after user stops adjusting for 500ms
                 adjustmentTimeout = setTimeout(() => {
-                    console.log('Saving adjustment to history');
-                    saveToHistory();
-                }, 500);
+                    const baseImage = editHistory[historyIndex];
+                    const filteredCanvas = document.createElement('canvas');
+                    filteredCanvas.width = baseImage.width;
+                    filteredCanvas.height = baseImage.height;
+                    const filteredCtx = filteredCanvas.getContext('2d');
+
+                    const brightness = 1 + parseInt(brightnessSlider.value) / 100;
+                    const contrast = 1 + parseInt(contrastSlider.value) / 100;
+                    filteredCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
+                    filteredCtx.drawImage(baseImage, 0, 0);
+                    
+                    saveToHistory(filteredCanvas);
+                    resetSliders();
+                }, 800);
             }
             
             brightnessSlider.addEventListener('input', (e) => {
                 brightnessValue.textContent = e.target.value;
-                applyFilters();
-                scheduleHistorySave();
+                drawEditor(); // Instant visual update
             });
+            
+            brightnessSlider.addEventListener('change', scheduleHistorySaveOnAdjust);
 
             contrastSlider.addEventListener('input', (e) => {
                 contrastValue.textContent = e.target.value;
-                applyFilters();
-                scheduleHistorySave();
+                drawEditor(); // Instant visual update
             });
+            
+            contrastSlider.addEventListener('change', scheduleHistorySaveOnAdjust);
 
             // History controls
             undoBtn.addEventListener('click', () => {
                 if (historyIndex > 0) {
                     historyIndex--;
-                    const historyEntry = editHistory[historyIndex];
+                    const previousImage = editHistory[historyIndex];
                     
-                    console.log('Undo to index:', historyIndex, 'Canvas size:', historyEntry.width, 'x', historyEntry.height);
+                    // Resize canvas to match the image
+                    const maxDisplaySize = Math.min(editorCanvas.parentElement.offsetWidth - 100, 600);
+                    const scale = Math.min(maxDisplaySize / previousImage.width, maxDisplaySize / previousImage.height, 1);
+                    const displayWidth = previousImage.width * scale;
+                    const displayHeight = previousImage.height * scale;
                     
-                    // Restore canvas size and image data
-                    editorCanvas.width = historyEntry.width;
-                    editorCanvas.height = historyEntry.height;
-                    editorCtx.putImageData(historyEntry.imageData, 0, 0);
+                    editorCanvas.width = displayWidth;
+                    editorCanvas.height = displayHeight;
+                    editorCanvas.style.width = displayWidth + 'px';
+                    editorCanvas.style.height = displayHeight + 'px';
                     
-                    // Update image rect and original data
-                    imageRect = { x: 0, y: 0, width: historyEntry.width, height: historyEntry.height };
-                    originalImageData = editorCtx.getImageData(0, 0, historyEntry.width, historyEntry.height);
+                    // Reset crop box
+                    const cropSize = Math.min(displayWidth, displayHeight) * 0.8;
+                    cropBox = {
+                        x: (displayWidth - cropSize) / 2,
+                        y: (displayHeight - cropSize) / 2,
+                        width: cropSize,
+                        height: cropSize
+                    };
                     
-                    // Reset sliders and scale for display
                     resetSliders();
                     updateHistoryButtons();
-                    
-                    setTimeout(() => {
-                        scaleCanvasForDisplay();
-                    }, 50);
+                    drawEditor();
                 }
             });
 
             redoBtn.addEventListener('click', () => {
                 if (historyIndex < editHistory.length - 1) {
                     historyIndex++;
-                    const historyEntry = editHistory[historyIndex];
+                    const nextImage = editHistory[historyIndex];
                     
-                    console.log('Redo to index:', historyIndex, 'Canvas size:', historyEntry.width, 'x', historyEntry.height);
+                    // Resize canvas to match the image
+                    const maxDisplaySize = Math.min(editorCanvas.parentElement.offsetWidth - 100, 600);
+                    const scale = Math.min(maxDisplaySize / nextImage.width, maxDisplaySize / nextImage.height, 1);
+                    const displayWidth = nextImage.width * scale;
+                    const displayHeight = nextImage.height * scale;
                     
-                    // Restore canvas size and image data
-                    editorCanvas.width = historyEntry.width;
-                    editorCanvas.height = historyEntry.height;
-                    editorCtx.putImageData(historyEntry.imageData, 0, 0);
+                    editorCanvas.width = displayWidth;
+                    editorCanvas.height = displayHeight;
+                    editorCanvas.style.width = displayWidth + 'px';
+                    editorCanvas.style.height = displayHeight + 'px';
                     
-                    // Update image rect and original data
-                    imageRect = { x: 0, y: 0, width: historyEntry.width, height: historyEntry.height };
-                    originalImageData = editorCtx.getImageData(0, 0, historyEntry.width, historyEntry.height);
+                    // Reset crop box
+                    const cropSize = Math.min(displayWidth, displayHeight) * 0.8;
+                    cropBox = {
+                        x: (displayWidth - cropSize) / 2,
+                        y: (displayHeight - cropSize) / 2,
+                        width: cropSize,
+                        height: cropSize
+                    };
                     
-                    // Reset sliders and scale for display
                     resetSliders();
                     updateHistoryButtons();
-                    
-                    setTimeout(() => {
-                        scaleCanvasForDisplay();
-                    }, 50);
+                    drawEditor();
                 }
             });
 
             resetBtn.addEventListener('click', () => {
                 if (editHistory.length > 0) {
-                    console.log('Resetting to original image');
-                    
-                    // Go back to the first entry (original image)
-                    const originalEntry = editHistory[0];
-                    
-                    // Restore canvas size and original image
-                    editorCanvas.width = originalEntry.width;
-                    editorCanvas.height = originalEntry.height;
-                    editorCtx.putImageData(originalEntry.imageData, 0, 0);
-                    
-                    // Update image rect and original data
-                    imageRect = { x: 0, y: 0, width: originalEntry.width, height: originalEntry.height };
-                    originalImageData = editorCtx.getImageData(0, 0, originalEntry.width, originalEntry.height);
-                    
-                    // Reset sliders
-                    resetSliders();
-                    
-                    // Reset history to just the original
-                    editHistory = [originalEntry];
+                    editHistory = [editHistory[0]];
                     historyIndex = 0;
-                    updateHistoryButtons();
-                    
-                    console.log('Reset complete. Canvas size:', originalEntry.width, 'x', originalEntry.height);
-                    
-                    // Scale for display
-                    setTimeout(() => {
-                        scaleCanvasForDisplay();
-                    }, 50);
-                } else {
-                    console.log('No history available for reset');
+                    openImageEditor(); // Re-initialize with original
                 }
             });
 
@@ -1836,25 +1725,26 @@
             editorCancelBtn.addEventListener('click', closeImageEditor);
 
             editorApplyBtn.addEventListener('click', () => {
-                // Clear any pending history saves first
-                if (adjustmentTimeout) {
-                    clearTimeout(adjustmentTimeout);
-                    adjustmentTimeout = null;
-                }
+                if (adjustmentTimeout) clearTimeout(adjustmentTimeout);
                 
-                // Save final state to history if there are unsaved adjustments
-                if (brightnessSlider.value != 0 || contrastSlider.value != 0) {
-                    console.log('Saving final adjustments before applying changes');
-                    saveToHistory();
-                }
+                // Create final image with all adjustments
+                const baseImage = editHistory[historyIndex];
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = baseImage.width;
+                finalCanvas.height = baseImage.height;
+                const finalCtx = finalCanvas.getContext('2d');
                 
-                // Convert canvas to blob and update preview
-                editorCanvas.toBlob((blob) => {
+                const brightness = 1 + parseInt(brightnessSlider.value) / 100;
+                const contrast = 1 + parseInt(contrastSlider.value) / 100;
+                finalCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
+                finalCtx.drawImage(baseImage, 0, 0);
+
+                finalCanvas.toBlob((blob) => {
                     currentEditedBlob = blob;
                     const url = URL.createObjectURL(blob);
                     imagePreview.src = url;
                     closeImageEditor();
-                });
+                }, 'image/jpeg', 0.9);
             });
 
             // Update slider value displays
@@ -1866,7 +1756,6 @@
                 accuracyValue.textContent = `${e.target.value}%`;
             });
 
-            // NEW: Function to toggle search controls based on selected button
             function toggleSearchControls() {
                 if (selectedEndpoint === '/search/image') {
                     quantitySliderContainer.style.display = 'flex';
@@ -1879,7 +1768,6 @@
                 }
             }
             
-            // NEW: Event listeners for action buttons
             actionButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     selectedEndpoint = button.dataset.endpoint;
@@ -1889,9 +1777,7 @@
                 });
             });
 
-            // Initial check on page load
             toggleSearchControls();
-
 
             // Enhanced search functionality
             searchButton.addEventListener('click', async () => {
@@ -1900,7 +1786,6 @@
                 let searchUrl = '';
 
                 if (currentSearchMode === 'image') {
-                    // Use edited image if available, otherwise use original
                     let fileToSend;
                     if (currentEditedBlob) {
                         fileToSend = currentEditedBlob;
@@ -1916,11 +1801,9 @@
                     isValid = true;
                     searchData = new FormData();
                     searchData.append('file', fileToSend);
-                    
-                    // MODIFIED: Get URL from state variable
                     searchUrl = selectedEndpoint;
 
-                } else { // Text search mode
+                } else {
                     const query = textQuery.value.trim();
                     if (!query) {
                         alert('Please enter a search query.');
@@ -1936,12 +1819,10 @@
 
                 if (!isValid) return;
 
-                // Set loading state
                 searchButton.disabled = true;
                 searchButton.textContent = 'Processing...';
                 resultsContainer.innerHTML = '<p>Processing your request...</p>';
 
-                // MODIFIED: Conditionally add query params
                 if (searchUrl === '/search/image') {
                     const topK = quantitySlider.value;
                     const minPercent = accuracySlider.value;
@@ -1958,14 +1839,11 @@
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
 
-                    // MODIFIED: Handle different response types
                     if (currentSearchMode === 'text' || selectedEndpoint === '/search/image') {
-                        // This is a search request, expect JSON
                         const data = await response.json();
                         currentResults = data;
                         resultsContainer.innerHTML = '';
 
-                        // Show current query
                         if (currentSearchMode === 'text') {
                             queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
                         } else {
@@ -2028,7 +1906,6 @@
                             resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy or using different search terms.</p>';
                         }
                     } else {
-                        // This is a preprocessing request, expect an image blob
                         const imageBlob = await response.blob();
                         const imageUrl = URL.createObjectURL(imageBlob);
                         resultsContainer.innerHTML = `
@@ -2041,13 +1918,11 @@
                     console.error('Search Error:', error);
                     resultsContainer.innerHTML = '<p>An error occurred during the search. Please ensure the backend is running and check the console for details.</p>';
                 } finally {
-                    // Restore button state
                     searchButton.disabled = false;
-                    toggleSearchControls(); // This will set the correct text
+                    toggleSearchControls();
                 }
             });
 
-            // Allow Enter key to trigger search in text input
             textQuery.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     searchButton.click();
