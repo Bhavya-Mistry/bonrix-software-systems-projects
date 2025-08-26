@@ -5,6 +5,7 @@ numpy
 pillow
 faiss-cpu
 open_clip_torch
+rembg
 
 # API
 fastapi
