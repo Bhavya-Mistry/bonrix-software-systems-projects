@@ -1,33 +1,35 @@
-import os, io, sqlite3
+import os, io, sqlite3, base64, requests
 from typing import Optional, List
-from fastapi import FastAPI, UploadFile, File, Query, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from PIL import Image
 import torch
 from retriever.models import load_model
-from retriever.embed import embed_image_pil, embed_text  # Import text embedding
+from retriever.embed import embed_image_pil, embed_text
 from retriever.index import load_index, read_id_map, search
 
 app = FastAPI(title="Jewelry Image Search", version="0.1.0")
 
+# --- Constants and Configuration ---
 IDX_PATH = "data/faiss.index"
 MAP_PATH = "data/id_map.csv"
 DB_PATH  = "data/products.sqlite"
 
-# Load model and index
+
+# --- Model and Index Loading ---
 model, _ ,device, _ = load_model()
 if not (os.path.exists(IDX_PATH) and os.path.exists(MAP_PATH)):
     raise RuntimeError("Index not found. Run: python jobs/build_index.py")
 index = load_index(IDX_PATH)
 id_map = read_id_map(MAP_PATH)
 
-# Mount static files (frontend and images)
+# --- Static File Mounting ---
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
 
-# Updated Hit model to match simplified database
+# --- Pydantic Models ---
 class Hit(BaseModel):
     rank: int
     match_percent: float
@@ -36,24 +38,19 @@ class Hit(BaseModel):
     sku: Optional[str] = None
     title: Optional[str] = None
 
-# Updated function to normalize paths and attach metadata
+# --- Helper Functions ---
 def attach_metadata(hits: List[dict]) -> List[Hit]:
+    # ... (existing metadata attachment logic remains the same)
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     enriched = []
     
     for h in hits:
-        # Get the original path from search results
         original_path = h['image_path']
-        
-        # Normalize the path for consistent forward slashes in response
         normalized_path = original_path.replace('\\', '/')
-        
-        # Create a new hit dict with normalized path
         normalized_hit = h.copy()
         normalized_hit['image_path'] = normalized_path
         
-        # Try the original path first for database lookup
         cur.execute("SELECT sku, title FROM products WHERE image_path = ? LIMIT 1", (original_path,))
         row = cur.fetchone()
         
@@ -61,30 +58,24 @@ def attach_metadata(hits: List[dict]) -> List[Hit]:
             sku, title = row
             enriched.append(Hit(**normalized_hit, sku=sku, title=title))
         else:
-            # If not found, try with forward slashes
             cur.execute("SELECT sku, title FROM products WHERE image_path = ? LIMIT 1", (normalized_path,))
             row = cur.fetchone()
-            
             if row:
                 sku, title = row
                 enriched.append(Hit(**normalized_hit, sku=sku, title=title))
             else:
-                # If still not found, try with just the filename
                 filename = os.path.basename(original_path)
                 cur.execute("SELECT sku, title FROM products WHERE image_path LIKE ? LIMIT 1", (f'%{filename}',))
                 row = cur.fetchone()
-                
                 if row:
                     sku, title = row
                     enriched.append(Hit(**normalized_hit, sku=sku, title=title))
                 else:
-                    # No match found, add without metadata
                     enriched.append(Hit(**normalized_hit))
-    
     con.close()
     return enriched
 
-# Serve the main page
+# --- FastAPI Endpoints ---
 @app.get("/")
 def read_index():
     return FileResponse('frontend/index.html')
@@ -92,18 +83,12 @@ def read_index():
 @app.post("/search/image", response_model=List[Hit])
 async def search_image(file: UploadFile = File(...), top_k: int = 8, min_percent: float = 80.0):
     pil = Image.open(io.BytesIO(await file.read())).convert("RGB")
-    # Make sure 'device' is passed as the argument for embedding
-    qvec = embed_image_pil(pil, model, device)  # Pass device correctly
+    qvec = embed_image_pil(pil, model, device)
     hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
     return attach_metadata(hits)
 
 @app.post("/search/text", response_model=List[Hit])
-async def search_text(
-    query: str = Form(...),
-    top_k: int = Form(8),
-    min_percent: float = Form(70.0)
-):
-    """Search for images using text description"""
+async def search_text(query: str = Form(...), top_k: int = Form(8), min_percent: float = Form(70.0)):
     qvec = embed_text(query, model, device)
     hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
     return attach_metadata(hits)
@@ -112,36 +97,29 @@ async def search_text(
 def healthz():
     return {"status": "ok", "index_size": len(id_map)}
 
-
-
-from fastapi.responses import Response
-
 @app.post("/chatgpt")
 async def preprocess_chatgpt(file: UploadFile = File(...)):
-    """Return the uploaded image for ChatGPT preprocessing"""
     content = await file.read()
     return Response(content=content, media_type=file.content_type)
 
 @app.post("/gemini")
 async def preprocess_gemini(file: UploadFile = File(...)):
-    """Return the uploaded image for Gemini preprocessing"""
     content = await file.read()
     return Response(content=content, media_type=file.content_type)
+   
 
 @app.post("/bgremover")
 async def preprocess_bgremover(file: UploadFile = File(...)):
-    """Return the uploaded image for background removal preprocessing"""
     content = await file.read()
+    # This would be a good place for a dedicated background removal library if needed
     return Response(content=content, media_type=file.content_type)
 
 @app.post("/quin")
 async def preprocess_quin(file: UploadFile = File(...)):
-    """Return the uploaded image for Quin preprocessing"""
     content = await file.read()
     return Response(content=content, media_type=file.content_type)
 
 @app.post("/nanobanana")
 async def preprocess_nanobanana(file: UploadFile = File(...)):
-    """Return the uploaded image for NanoBanana preprocessing"""
     content = await file.read()
     return Response(content=content, media_type=file.content_type)
