@@ -96,6 +96,6 @@ def generate(prompt: str, image_path: str, out_file_prefix: str = "gen_image"):
 if __name__ == "__main__":
     # EXAMPLE:
     # Place an image on disk and update these two lines:
-    user_prompt = r"Please analyze the attached image. First, identify the primary object of attention or the main subject in this photo. Based on your analysis, generate a new image that is a close-up crop of only that object. The final generated image should have the object placed on a clean, plain white background. Make sure the image does not get changed."
+    user_prompt = r"only keep jewelry item from image, keep jewelry item unedited, keep its shape and color preserved, remove everything else from image and place it on pure white background"
     input_image_path = r"test1.jpg"
     generate(user_prompt, input_image_path, out_file_prefix="result")
