@@ -110,7 +110,7 @@
             font-size: 1rem;
             transition: border-color 0.2s ease;
             box-sizing: border-box;
-            background-color: #fff;
+            background-color: #fff; /* Ensure select has a background */
         }
 
         .text-input:focus {
@@ -202,7 +202,7 @@
             justify-content: center;
         }
 
-        .edit-image, .remove-image {
+        .edit-image, .remove-image, .undo-image, .redo-image {
             padding: 0.5rem 1rem;
             border: none;
             border-radius: 6px;
@@ -228,6 +228,38 @@
 
         .remove-image:hover {
             background-color: #c82333;
+        }
+
+        /* NEW: Undo button styles */
+        .undo-image {
+            background-color: #6f42c1;
+            color: white;
+        }
+
+        .undo-image:hover {
+            background-color: #5a2d91;
+        }
+
+        .undo-image:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* NEW: Redo button styles */
+        .redo-image {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .redo-image:hover {
+            background-color: #138496;
+        }
+
+        .redo-image:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .image-preview-wrapper {
@@ -274,6 +306,18 @@
             display: block;
             font-size: 0.875rem;
             color: #6c757d;
+        }
+
+        /* NEW: History info styles */
+        .image-history-info {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: #0066cc;
+            text-align: center;
         }
 
         /* Image Editor Modal */
@@ -658,7 +702,7 @@
             max-height: 85vh;
             margin: auto;
             animation: slideIn 0.3s ease;
-            padding-top: 60px;
+            padding-top: 60px; /* Space for close button */
         }
 
         .modal-image {
@@ -858,6 +902,7 @@
                 <!-- Image Search Tab -->
                 <div id="image-tab" class="tab-content active">
                     <h3>Upload Image</h3>
+                    <!-- REPLACED: Dropdown with Buttons -->
                     <div class="action-buttons-container" style="margin-bottom: 1.5rem;">
                         <label style="font-weight: 500; color: #495057; display: block; margin-bottom: 0.75rem;">Select Action:</label>
                         <div class="action-buttons">
@@ -884,9 +929,16 @@
                                     <span id="preview-filename" class="preview-filename"></span>
                                     <span id="preview-size" class="preview-size"></span>
                                 </div>
+                                <!-- NEW: History info display -->
+                                <div id="image-history-info" class="image-history-info" style="display: none;">
+                                    <span id="history-text">Version 1 of 1</span>
+                                </div>
                             </div>
                             <div class="preview-controls">
                                 <button id="edit-image" class="edit-image">Edit Image</button>
+                                <!-- NEW: Undo and Redo buttons -->
+                                <button id="undo-image" class="undo-image" disabled>Undo</button>
+                                <button id="redo-image" class="redo-image" disabled>Redo</button>
                                 <button id="remove-image" class="remove-image">Remove</button>
                             </div>
                         </div>
@@ -967,7 +1019,6 @@
                         <div id="crop-instruction" class="editor-instruction" style="font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem;">
                             Drag to move the square, drag corners to resize.
                         </div>
-                        <button id="crop-apply" class="editor-button primary">Apply Crop</button>
                     </div>
                     
                     <!-- Adjustments Section -->
@@ -989,14 +1040,7 @@
                                 <span id="contrast-value" class="editor-slider-value">0</span>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- History Section -->
-                    <div class="editor-section">
-                        <h4>Edit History</h4>
-                        <button id="undo-btn" class="editor-button secondary" disabled>Undo</button>
-                        <button id="redo-btn" class="editor-button secondary" disabled>Redo</button>
-                        <button id="reset-btn" class="editor-button danger">Reset to Original</button>
+
                     </div>
                 </div>
             </div>
@@ -1049,6 +1093,12 @@
             const removeImageBtn = document.getElementById('remove-image');
             const previewFilename = document.getElementById('preview-filename');
             const previewSize = document.getElementById('preview-size');
+            
+            // NEW: Undo and Redo functionality elements
+            const undoImageBtn = document.getElementById('undo-image');
+            const redoImageBtn = document.getElementById('redo-image');
+            const imageHistoryInfo = document.getElementById('image-history-info');
+            const historyText = document.getElementById('history-text');
 
             // Image editor elements
             const editorModal = document.getElementById('image-editor-modal');
@@ -1058,15 +1108,10 @@
             const editorApplyBtn = document.getElementById('editor-apply-btn');
             
             // Editor controls
-            const cropApplyBtn = document.getElementById('crop-apply');
             const brightnessSlider = document.getElementById('brightness-slider');
             const brightnessValue = document.getElementById('brightness-value');
             const contrastSlider = document.getElementById('contrast-slider');
             const contrastValue = document.getElementById('contrast-value');
-
-            const undoBtn = document.getElementById('undo-btn');
-            const redoBtn = document.getElementById('redo-btn');
-            const resetBtn = document.getElementById('reset-btn');
 
             // Modal elements
             const modal = document.getElementById('image-modal');
@@ -1076,6 +1121,7 @@
             const prevBtn = document.getElementById('prev-button');
             const nextBtn = document.getElementById('next-button');
             
+            // Action buttons and related controls
             const actionButtons = document.querySelectorAll('.action-button');
             const quantitySliderContainer = document.getElementById('quantity-slider').closest('.slider-container');
             const accuracySliderContainer = document.getElementById('accuracy-slider').closest('.slider-container');
@@ -1086,7 +1132,11 @@
             let currentResults = [];
             let currentImageIndex = 0;
 
-            // --- FIXED: Image Cropper State ---
+            // NEW: Image history state
+            let imageHistory = []; // Array to store image history
+            let currentHistoryIndex = -1; // Current position in history
+
+            // --- Image Editor with Advanced Crop State ---
             let editorCtx = null;
             let originalImage = null;
             let editHistory = [];
@@ -1107,6 +1157,115 @@
             // Initialize canvas context
             editorCtx = editorCanvas.getContext('2d');
 
+            // NEW: Image history functions
+            function addToImageHistory(imageData, description, filename = null) {
+                // Remove any future history if we're not at the end
+                if (currentHistoryIndex < imageHistory.length - 1) {
+                    imageHistory = imageHistory.slice(0, currentHistoryIndex + 1);
+                }
+                
+                // Add new entry
+                const historyEntry = {
+                    imageData: imageData, // This can be a blob, data URL, or file
+                    description: description,
+                    filename: filename,
+                    timestamp: new Date()
+                };
+                
+                imageHistory.push(historyEntry);
+                currentHistoryIndex++;
+                
+                console.log(`Added to history: ${description}. Position: ${currentHistoryIndex + 1}/${imageHistory.length}`);
+                updateHistoryUI();
+            }
+
+            function undoImageHistory() {
+                if (currentHistoryIndex > 0) {
+                    currentHistoryIndex--;
+                    const historyEntry = imageHistory[currentHistoryIndex];
+                    
+                    console.log(`Undo to: ${historyEntry.description}. Position: ${currentHistoryIndex + 1}/${imageHistory.length}`);
+                    
+                    // Update preview with previous image
+                    if (historyEntry.imageData instanceof Blob) {
+                        const url = URL.createObjectURL(historyEntry.imageData);
+                        imagePreview.src = url;
+                        currentEditedBlob = historyEntry.imageData;
+                    } else if (typeof historyEntry.imageData === 'string') {
+                        imagePreview.src = historyEntry.imageData;
+                        currentEditedBlob = null; // If it's original file data
+                    }
+                    
+                    // Update filename display
+                    if (historyEntry.filename) {
+                        previewFilename.textContent = historyEntry.filename;
+                    }
+                    
+                    updateHistoryUI();
+                }
+            }
+
+            function redoImageHistory() {
+                if (currentHistoryIndex < imageHistory.length - 1) {
+                    currentHistoryIndex++;
+                    const historyEntry = imageHistory[currentHistoryIndex];
+                    
+                    console.log(`Redo to: ${historyEntry.description}. Position: ${currentHistoryIndex + 1}/${imageHistory.length}`);
+                    
+                    // Update preview with next image
+                    if (historyEntry.imageData instanceof Blob) {
+                        const url = URL.createObjectURL(historyEntry.imageData);
+                        imagePreview.src = url;
+                        currentEditedBlob = historyEntry.imageData;
+                    } else if (typeof historyEntry.imageData === 'string') {
+                        imagePreview.src = historyEntry.imageData;
+                        currentEditedBlob = null; // If it's original file data
+                    }
+                    
+                    // Update filename display
+                    if (historyEntry.filename) {
+                        previewFilename.textContent = historyEntry.filename;
+                    }
+                    
+                    updateHistoryUI();
+                }
+            }
+
+            function updateHistoryUI() {
+                const canUndo = currentHistoryIndex > 0;
+                const canRedo = currentHistoryIndex < imageHistory.length - 1;
+                
+                undoImageBtn.disabled = !canUndo;
+                redoImageBtn.disabled = !canRedo;
+                
+                if (imageHistory.length > 0) {
+                    historyText.textContent = `Version ${currentHistoryIndex + 1} of ${imageHistory.length}`;
+                    imageHistoryInfo.style.display = 'block';
+                    
+                    // Show current version description if not original
+                    if (currentHistoryIndex > 0) {
+                        const currentEntry = imageHistory[currentHistoryIndex];
+                        historyText.textContent += ` (${currentEntry.description})`;
+                    }
+                } else {
+                    imageHistoryInfo.style.display = 'none';
+                }
+                
+                console.log('History UI updated:', { 
+                    canUndo, 
+                    canRedo,
+                    position: currentHistoryIndex + 1, 
+                    total: imageHistory.length 
+                });
+            }
+
+            function clearImageHistory() {
+                imageHistory = [];
+                currentHistoryIndex = -1;
+                updateHistoryUI();
+                console.log('Image history cleared');
+            }
+
             // Tab switching functionality
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
@@ -1116,25 +1275,23 @@
             });
 
             function switchTab(tabName) {
+                // Update buttons
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
 
+                // Update content
                 tabContents.forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
 
+                // Update current mode
                 currentSearchMode = tabName;
+
+                // Clear results and query display when switching tabs
                 resultsContainer.innerHTML = '';
                 currentQueryDiv.style.display = 'none';
                 
-                if (tabName === 'text') {
-                    searchButton.textContent = 'Search by Description';
-                    if (accuracySlider.value == 90) {
-                        accuracySlider.value = 70;
-                        accuracyValue.textContent = '70%';
-                    }
-                } else {
-                    toggleSearchControls();
-                }
+                // Update search controls based on current tab
+                toggleSearchControls();
             }
 
             // Text search examples
@@ -1193,6 +1350,10 @@
                     dropZonePrompt.style.display = 'none';
                     imagePreviewContainer.style.display = 'block';
                     
+                    // NEW: Initialize history with original image
+                    clearImageHistory();
+                    addToImageHistory(e.target.result, 'Original Image', file.name);
+                    
                     imagePreview.onclick = (e) => {
                         e.stopPropagation();
                         openModal(null, true);
@@ -1207,6 +1368,9 @@
                 imagePreview.src = '';
                 imagePreview.onclick = null;
                 currentEditedBlob = null;
+                
+                // NEW: Clear history when hiding preview
+                clearImageHistory();
             }
 
             function formatFileSize(bytes) {
@@ -1221,6 +1385,15 @@
                 openImageEditor();
             });
 
+            // NEW: Undo and Redo functionality
+            undoImageBtn.addEventListener('click', () => {
+                undoImageHistory();
+            });
+
+            redoImageBtn.addEventListener('click', () => {
+                redoImageHistory();
+            });
+
             removeImageBtn.addEventListener('click', () => {
                 imageInput.value = '';
                 fileNameSpan.textContent = 'No file chosen';
@@ -1229,7 +1402,7 @@
                 currentQueryDiv.style.display = 'none';
             });
 
-            // --- COMPLETELY REWRITTEN Image Editor Functions ---
+            // --- Advanced Image Editor Functions ---
 
             function openImageEditor() {
                 const img = new Image();
@@ -1282,7 +1455,6 @@
                         
                         editHistory = [originalCanvas];
                         historyIndex = 0;
-                        updateHistoryButtons();
                         resetSliders();
                         
                         // Force a repaint and draw
@@ -1534,9 +1706,7 @@
                 editorCanvas.style.cursor = 'crosshair';
             });
 
-            cropApplyBtn.addEventListener('click', () => {
-                applyCrop();
-            });
+
 
             function applyCrop() {
                 const sourceImage = editHistory[historyIndex];
@@ -1573,8 +1743,6 @@
                 // Reset crop box to cover the entire new image
                 cropBox = { x: 0, y: 0, width: displaySize, height: displaySize };
                 
-                // Save this new state to history
-                saveToHistory(croppedCanvas);
                 drawEditor();
             }
 
@@ -1585,32 +1753,7 @@
                 contrastValue.textContent = '0';
             }
 
-            function saveToHistory(canvasToSave) {
-                if (historyIndex < editHistory.length - 1) {
-                    editHistory = editHistory.slice(0, historyIndex + 1);
-                }
-                
-                if (!canvasToSave) {
-                    canvasToSave = document.createElement('canvas');
-                    canvasToSave.width = editHistory[historyIndex].width;
-                    canvasToSave.height = editHistory[historyIndex].height;
-                    canvasToSave.getContext('2d').drawImage(editHistory[historyIndex], 0, 0);
-                }
 
-                editHistory.push(canvasToSave);
-                historyIndex++;
-                
-                if (editHistory.length > 20) {
-                    editHistory.shift();
-                    historyIndex--;
-                }
-                updateHistoryButtons();
-            }
-
-            function updateHistoryButtons() {
-                undoBtn.disabled = historyIndex <= 0;
-                redoBtn.disabled = historyIndex >= editHistory.length - 1;
-            }
 
             // Slider event listeners - removed automatic history saving for better UX
             brightnessSlider.addEventListener('input', (e) => {
@@ -1623,76 +1766,7 @@
                 drawEditor(); // Instant visual update
             });
 
-            // History controls
-            undoBtn.addEventListener('click', () => {
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    const previousImage = editHistory[historyIndex];
-                    
-                    // Resize canvas to match the image
-                    const maxDisplaySize = Math.min(editorCanvas.parentElement.offsetWidth - 100, 600);
-                    const scale = Math.min(maxDisplaySize / previousImage.width, maxDisplaySize / previousImage.height, 1);
-                    const displayWidth = previousImage.width * scale;
-                    const displayHeight = previousImage.height * scale;
-                    
-                    editorCanvas.width = displayWidth;
-                    editorCanvas.height = displayHeight;
-                    editorCanvas.style.width = displayWidth + 'px';
-                    editorCanvas.style.height = displayHeight + 'px';
-                    
-                    // Reset crop box
-                    const cropSize = Math.min(displayWidth, displayHeight) * 0.8;
-                    cropBox = {
-                        x: (displayWidth - cropSize) / 2,
-                        y: (displayHeight - cropSize) / 2,
-                        width: cropSize,
-                        height: cropSize
-                    };
-                    
-                    resetSliders();
-                    updateHistoryButtons();
-                    drawEditor();
-                }
-            });
 
-            redoBtn.addEventListener('click', () => {
-                if (historyIndex < editHistory.length - 1) {
-                    historyIndex++;
-                    const nextImage = editHistory[historyIndex];
-                    
-                    // Resize canvas to match the image
-                    const maxDisplaySize = Math.min(editorCanvas.parentElement.offsetWidth - 100, 600);
-                    const scale = Math.min(maxDisplaySize / nextImage.width, maxDisplaySize / nextImage.height, 1);
-                    const displayWidth = nextImage.width * scale;
-                    const displayHeight = nextImage.height * scale;
-                    
-                    editorCanvas.width = displayWidth;
-                    editorCanvas.height = displayHeight;
-                    editorCanvas.style.width = displayWidth + 'px';
-                    editorCanvas.style.height = displayHeight + 'px';
-                    
-                    // Reset crop box
-                    const cropSize = Math.min(displayWidth, displayHeight) * 0.8;
-                    cropBox = {
-                        x: (displayWidth - cropSize) / 2,
-                        y: (displayHeight - cropSize) / 2,
-                        width: cropSize,
-                        height: cropSize
-                    };
-                    
-                    resetSliders();
-                    updateHistoryButtons();
-                    drawEditor();
-                }
-            });
-
-            resetBtn.addEventListener('click', () => {
-                if (editHistory.length > 0) {
-                    editHistory = [editHistory[0]];
-                    historyIndex = 0;
-                    openImageEditor(); // Re-initialize with original
-                }
-            });
 
             // Editor modal controls
             editorCloseBtn.addEventListener('click', closeImageEditor);
@@ -1702,31 +1776,69 @@
                 try {
                     console.log('Apply Changes button clicked');
                     
-                    // Create final image with all adjustments
-                    const baseImage = editHistory[historyIndex];
-                    if (!baseImage) {
+                    let finalImage = editHistory[historyIndex];
+                    if (!finalImage) {
                         console.error('No base image found in history');
                         return;
                     }
                     
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = baseImage.width;
-                    finalCanvas.height = baseImage.height;
-                    const finalCtx = finalCanvas.getContext('2d');
+                    // First, check if cropping is needed
+                    const originalCropSize = Math.min(editorCanvas.width, editorCanvas.height) * 0.8;
+                    const originalCropX = (editorCanvas.width - originalCropSize) / 2;
+                    const originalCropY = (editorCanvas.height - originalCropSize) / 2;
                     
-                    const brightness = 1 + parseInt(brightnessSlider.value) / 100;
-                    const contrast = 1 + parseInt(contrastSlider.value) / 100;
-                    console.log('Applying filters:', { brightness, contrast });
+                    const cropChanged = Math.abs(cropBox.x - originalCropX) > 5 || 
+                                      Math.abs(cropBox.y - originalCropY) > 5 || 
+                                      Math.abs(cropBox.width - originalCropSize) > 5;
                     
-                    finalCtx.filter = `brightness(${brightness}) contrast(${contrast})`;
-                    finalCtx.drawImage(baseImage, 0, 0);
+                    if (cropChanged) {
+                        // Apply cropping first
+                        const scaleX = finalImage.width / editorCanvas.width;
+                        const scaleY = finalImage.height / editorCanvas.height;
+                        
+                        const sx = cropBox.x * scaleX;
+                        const sy = cropBox.y * scaleY;
+                        const sSize = cropBox.width * scaleX;
+                        
+                        const croppedCanvas = document.createElement('canvas');
+                        croppedCanvas.width = sSize;
+                        croppedCanvas.height = sSize;
+                        const croppedCtx = croppedCanvas.getContext('2d');
+                        croppedCtx.drawImage(finalImage, sx, sy, sSize, sSize, 0, 0, sSize, sSize);
+                        
+                        finalImage = croppedCanvas;
+                        console.log('Applied cropping');
+                    }
+                    
+                    // Then apply brightness/contrast adjustments
+                    const brightness = parseInt(brightnessSlider.value);
+                    const contrast = parseInt(contrastSlider.value);
+                    
+                    if (brightness !== 0 || contrast !== 0) {
+                        const adjustedCanvas = document.createElement('canvas');
+                        adjustedCanvas.width = finalImage.width;
+                        adjustedCanvas.height = finalImage.height;
+                        const adjustedCtx = adjustedCanvas.getContext('2d');
+                        
+                        const brightnessValue = 1 + brightness / 100;
+                        const contrastValue = 1 + contrast / 100;
+                        adjustedCtx.filter = `brightness(${brightnessValue}) contrast(${contrastValue})`;
+                        adjustedCtx.drawImage(finalImage, 0, 0);
+                        
+                        finalImage = adjustedCanvas;
+                        console.log('Applied brightness/contrast:', { brightness, contrast });
+                    }
 
-                    finalCanvas.toBlob((blob) => {
+                    finalImage.toBlob((blob) => {
                         if (blob) {
                             console.log('Image blob created successfully');
                             currentEditedBlob = blob;
                             const url = URL.createObjectURL(blob);
                             imagePreview.src = url;
+                            
+                            // Add edited image to history
+                            addToImageHistory(blob, 'Edited Image', 'edited_image.jpg');
+                            
                             closeImageEditor();
                         } else {
                             console.error('Failed to create image blob');
@@ -1746,18 +1858,28 @@
                 accuracyValue.textContent = `${e.target.value}%`;
             });
 
+            // Function to toggle search controls based on selected button and current tab
             function toggleSearchControls() {
-                if (selectedEndpoint === '/search/image') {
+                if (currentSearchMode === 'text') {
+                    // Text search tab should always show controls regardless of image tab selection
                     quantitySliderContainer.style.display = 'flex';
                     accuracySliderContainer.style.display = 'flex';
-                    searchButton.textContent = 'Search Similar Images';
-                } else {
-                    quantitySliderContainer.style.display = 'none';
-                    accuracySliderContainer.style.display = 'none';
-                    searchButton.textContent = 'Process Image';
+                    searchButton.textContent = 'Search by Description';
+                } else if (currentSearchMode === 'image') {
+                    // Image search tab behavior depends on selected endpoint
+                    if (selectedEndpoint === '/search/image') {
+                        quantitySliderContainer.style.display = 'flex';
+                        accuracySliderContainer.style.display = 'flex';
+                        searchButton.textContent = 'Search Similar Images';
+                    } else {
+                        quantitySliderContainer.style.display = 'none';
+                        accuracySliderContainer.style.display = 'none';
+                        searchButton.textContent = 'Process Image';
+                    }
                 }
             }
             
+            // Event listeners for action buttons
             actionButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     selectedEndpoint = button.dataset.endpoint;
@@ -1767,6 +1889,7 @@
                 });
             });
 
+            // Initial check on page load
             toggleSearchControls();
 
             // Enhanced search functionality
@@ -1776,6 +1899,7 @@
                 let searchUrl = '';
 
                 if (currentSearchMode === 'image') {
+                    // Use edited image if available, otherwise use original
                     let fileToSend;
                     if (currentEditedBlob) {
                         fileToSend = currentEditedBlob;
@@ -1791,9 +1915,10 @@
                     isValid = true;
                     searchData = new FormData();
                     searchData.append('file', fileToSend);
+                    
                     searchUrl = selectedEndpoint;
 
-                } else {
+                } else { // Text search mode
                     const query = textQuery.value.trim();
                     if (!query) {
                         alert('Please enter a search query.');
@@ -1809,10 +1934,12 @@
 
                 if (!isValid) return;
 
+                // Set loading state
                 searchButton.disabled = true;
                 searchButton.textContent = 'Processing...';
                 resultsContainer.innerHTML = '<p>Processing your request...</p>';
 
+                // Conditionally add query params
                 if (searchUrl === '/search/image') {
                     const topK = quantitySlider.value;
                     const minPercent = accuracySlider.value;
@@ -1829,11 +1956,14 @@
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
 
+                    // Handle different response types
                     if (currentSearchMode === 'text' || selectedEndpoint === '/search/image') {
+                        // This is a search request, expect JSON
                         const data = await response.json();
                         currentResults = data;
                         resultsContainer.innerHTML = '';
 
+                        // Show current query
                         if (currentSearchMode === 'text') {
                             queryTextSpan.textContent = `"${textQuery.value.trim()}"`;
                         } else {
@@ -1896,23 +2026,35 @@
                             resultsContainer.innerHTML = '<p>No similar images found. Try adjusting the search accuracy or using different search terms.</p>';
                         }
                     } else {
+                        // This is a preprocessing request, expect an image blob
                         const imageBlob = await response.blob();
                         const imageUrl = URL.createObjectURL(imageBlob);
-                        resultsContainer.innerHTML = `
-                            <h3>Processed Image</h3>
-                            <img src="${imageUrl}" alt="Processed Image" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                        `;
+                        
+                        // Update the preview with processed image and add to history
+                        imagePreview.src = imageUrl;
+                        currentEditedBlob = imageBlob;
+                        
+                        // Determine the processing type for history description
+                        let processType = selectedEndpoint.replace('/', '').toUpperCase();
+                        if (processType === 'BGREMOVER') processType = 'BG Remover';
+                        
+                        addToImageHistory(imageBlob, `${processType} Processed`, `${processType.toLowerCase()}_processed.jpg`);
+                        
+                        // Clear results container and hide query display
+                        resultsContainer.innerHTML = '';
                         currentQueryDiv.style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Search Error:', error);
                     resultsContainer.innerHTML = '<p>An error occurred during the search. Please ensure the backend is running and check the console for details.</p>';
                 } finally {
+                    // Restore button state
                     searchButton.disabled = false;
-                    toggleSearchControls();
+                    toggleSearchControls(); // This will set the correct text
                 }
             });
 
+            // Allow Enter key to trigger search in text input
             textQuery.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     searchButton.click();
@@ -2024,6 +2166,34 @@
                             case 'y':
                                 redoBtn.click();
                                 e.preventDefault();
+                                break;
+                        }
+                    }
+                } else if (imagePreviewContainer.style.display !== 'none') {
+                    // NEW: Global undo/redo shortcuts when image preview is visible
+                    if (e.ctrlKey || e.metaKey) {
+                        switch(e.key) {
+                            case 'z':
+                                if (e.shiftKey) {
+                                    // Ctrl+Shift+Z for redo
+                                    if (!redoImageBtn.disabled) {
+                                        redoImageHistory();
+                                        e.preventDefault();
+                                    }
+                                } else {
+                                    // Ctrl+Z for undo
+                                    if (!undoImageBtn.disabled) {
+                                        undoImageHistory();
+                                        e.preventDefault();
+                                    }
+                                }
+                                break;
+                            case 'y':
+                                // Ctrl+Y for redo (alternative shortcut)
+                                if (!redoImageBtn.disabled) {
+                                    redoImageHistory();
+                                    e.preventDefault();
+                                }
                                 break;
                         }
                     }
