@@ -101,11 +101,15 @@ def process_with_gemini(image_path: str) -> bytes:
     model_name = "gemini-2.0-flash-preview-image-generation"
     
     # Use the exact prompt from your provided code
-    prompt = ("Please analyze the attached image. First, identify the primary object of attention "
-              "or the main subject in this photo. Based on your analysis, generate a new image that "
-              "is a close-up crop of only that object. The final generated image should have the "
-              "object placed on a clean, plain white background. Make sure the image does not get changed.")
+    prompt = ("only keep jewelry item from image, keep jewelry item unedited, keep its shape and color preserved, remove everything else from image and place it on pure white background")
     
+    # "Remove the background from this image, isolating the jewellery item.The background should be replaced with a clean, "
+    # "pure white backdrop to create a professional, catalogue-ready look. Additionally, please complete missing parts to present "
+    # "a full, flawless design. Maintain a high-quality, realistic texture and lighting on the jewellery to "
+    # "showcase its details effectively."
+
+
+
     # Construct contents with both text and image parts
     contents = [
         types.Content(
