@@ -1,4 +1,4 @@
-# main.py (MODIFIED FOR SEPARATION)
+# main.py (MODIFIED FOR HYBRID SEARCH)
 
 import os, io, sqlite3, base64, requests, mimetypes, tempfile
 from typing import Optional, List
@@ -36,10 +36,7 @@ origins = [
     # "http://localhost:8080",
     # "http://127.0.0.1",
     # "http://127.0.0.1:8000",
-    # # "null" # Often needed for local testing with file:// protocol
-    # "http://194.61.31.163:8001",
-    # "http://0.0.0.0:8001",
-    # "http://0.0.0.0:8000",
+    # "null" # Often needed for local testing with file:// protocol
     "*"
 ]
 
@@ -140,7 +137,7 @@ def process_with_gemini(image_path: str) -> bytes:
     model_name = "gemini-2.0-flash-preview-image-generation"
     
     # Use the exact prompt from your provided code
-    prompt = ("only keep jewelry item from image, keep jewelry item unedited, keep its shape and color preserved, remove everything else from image and place it on pure white background")
+    prompt = ("only keep jewelry item from image, keep jewelry item unedited, keep its shape and color preserved, remove everything else from image and place it on pure whiteÂ background")
     
     contents = [
         types.Content(
@@ -266,6 +263,87 @@ async def search_text(query: str = Form(...), top_k: int = Form(8), min_percent:
     qvec = embed_text(query, model, device)
     hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
     return attach_metadata(hits)
+
+@app.post("/search/hybrid", response_model=List[Hit])
+async def search_hybrid(
+    file: UploadFile = File(...), 
+    query: str = Form(...), 
+    top_k: int = Form(10), 
+    min_percent: float = Form(10.0)
+):
+    """
+    Hybrid search that combines image and text search to find results relevant to both queries.
+    """
+    try:
+        print(f"Starting hybrid search with query: '{query}' and image: {file.filename}")
+        
+        # Generate dual query vectors
+        pil_image = Image.open(io.BytesIO(await file.read())).convert("RGB")
+        qvec_image = embed_image_pil(pil_image, model, device)
+        qvec_text = embed_text(query, model, device)
+        
+        print("Generated image and text embeddings")
+        
+        # Generate candidate pools
+        CANDIDATE_POOL_SIZE = 500
+        
+        # Perform image search to get first candidate pool
+        image_hits = search(index, qvec_image, id_map, top_k=CANDIDATE_POOL_SIZE, min_percent=0.0)
+        print(f"Image search returned {len(image_hits)} candidates")
+        
+        # Perform text search to get second candidate pool
+        text_hits = search(index, qvec_text, id_map, top_k=CANDIDATE_POOL_SIZE, min_percent=0.0)
+        print(f"Text search returned {len(text_hits)} candidates")
+        
+        # Fuse and re-rank the results
+        fused_scores = {}
+        
+        # Add image hits to fused_scores
+        for hit in image_hits:
+            fused_scores[hit['image_path']] = hit.copy()
+        
+        # Create set of text hit paths for intersection check
+        text_paths = {hit['image_path'] for hit in text_hits}
+        
+        # Add text hits and combine scores for intersection items
+        for text_hit in text_hits:
+            path = text_hit['image_path']
+            if path in fused_scores:
+                # This image is in the intersection - combine the cosine scores
+                fused_scores[path]['cosine'] += text_hit['cosine']
+                print(f"Combined scores for {path}: image={fused_scores[path]['cosine'] - text_hit['cosine']:.4f} + text={text_hit['cosine']:.4f} = {fused_scores[path]['cosine']:.4f}")
+        
+        # Filter to keep only items that were present in both searches (intersection)
+        intersection_results = []
+        for path, hit in fused_scores.items():
+            if path in text_paths:
+                intersection_results.append(hit)
+        
+        print(f"Found {len(intersection_results)} items in intersection")
+        
+        # Sort by combined cosine score in descending order
+        intersection_results.sort(key=lambda x: x['cosine'], reverse=True)
+        
+        # Take top_k results and update ranks
+        final_results = intersection_results[:top_k]
+        for i, hit in enumerate(final_results):
+            hit['rank'] = i + 1
+            # Recalculate match_percent based on combined score
+            # Note: Since we combined two cosine scores, the range is different
+            # We'll normalize it back to a 0-100% scale
+            combined_score = hit['cosine']
+            # Assuming each individual score was in [-1, 1] range, combined is in [-2, 2]
+            # Convert to percentage: ((score + 2) / 4) * 100
+            hit['match_percent'] = ((combined_score + 2.0) / 4.0) * 100.0
+        
+        print(f"Returning {len(final_results)} hybrid search results")
+        
+        # Add metadata and return
+        return attach_metadata(final_results)
+        
+    except Exception as e:
+        print(f"Hybrid search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Hybrid search failed: {str(e)}")
 
 @app.get("/healthz")
 def healthz():
