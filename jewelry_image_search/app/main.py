@@ -31,14 +31,16 @@ app = FastAPI(title="Jewelry Image Search API", version="0.1.0") # Changed title
 origins = [
     # "https://your-frontend-domain.com",
     # "http://your-frontend-domain.com",
-    "http://localhost",
-    "http://localhost:8000",
-    "http://localhost:8080",
-    "http://127.0.0.1",
-    "http://127.0.0.1:8000",
-    # "null" # Often needed for local testing with file:// protocol
-    "http://194.61.31.163:8001",
-    "http://0.0.0.0:8001"
+    # "http://localhost",
+    # "http://localhost:8000",
+    # "http://localhost:8080",
+    # "http://127.0.0.1",
+    # "http://127.0.0.1:8000",
+    # # "null" # Often needed for local testing with file:// protocol
+    # "http://194.61.31.163:8001",
+    # "http://0.0.0.0:8001",
+    # "http://0.0.0.0:8000",
+    "*"
 ]
 
 app.add_middleware(
