@@ -1,8 +1,12 @@
+# main.py (MODIFIED FOR SEPARATION)
+
 import os, io, sqlite3, base64, requests, mimetypes, tempfile
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
+# --- ADDED: Import CORSMiddleware ---
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image, ImageFilter, ImageEnhance
 import torch
@@ -17,7 +21,34 @@ from google.genai import types
 # REMBG import
 from rembg import remove
 
-app = FastAPI(title="Jewelry Image Search", version="0.1.0")
+app = FastAPI(title="Jewelry Image Search API", version="0.1.0") # Changed title for clarity
+
+# --- ADDED: CORS Middleware Configuration ---
+# This is the most important change.
+# Replace "https://your-frontend-domain.com" with the actual domain where you will host index.html
+# For local testing, you might use "http://localhost:8000" or "http://127.0.0.1:8000"
+# if you serve the HTML file with a simple local server.
+origins = [
+    # "https://your-frontend-domain.com",
+    # "http://your-frontend-domain.com",
+    "http://localhost",
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+    # "null" # Often needed for local testing with file:// protocol
+    "http://194.61.31.163:8001",
+    "http://0.0.0.0:8001"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"], # Allows all headers
+)
+
 
 # --- Constants and Configuration ---
 IDX_PATH = "data/faiss.index"
@@ -35,8 +66,14 @@ index = load_index(IDX_PATH)
 id_map = read_id_map(MAP_PATH)
 
 # --- Static File Mounting ---
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# --- REMOVED: Mounting the frontend directory ---
+# app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+# --- KEPT: Mounting the images directory ---
+# This is important because the API search results will return image paths,
+# and the frontend will need to fetch them from here.
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
+
 
 # --- Pydantic Models ---
 class Hit(BaseModel):
@@ -103,14 +140,6 @@ def process_with_gemini(image_path: str) -> bytes:
     # Use the exact prompt from your provided code
     prompt = ("only keep jewelry item from image, keep jewelry item unedited, keep its shape and color preserved, remove everything else from image and place it on pure white background")
     
-    # "Remove the background from this image, isolating the jewellery item.The background should be replaced with a clean, "
-    # "pure white backdrop to create a professional, catalogue-ready look. Additionally, please complete missing parts to present "
-    # "a full, flawless design. Maintain a high-quality, realistic texture and lighting on the jewellery to "
-    # "showcase its details effectively."
-
-
-
-    # Construct contents with both text and image parts
     contents = [
         types.Content(
             role="user",
@@ -121,7 +150,6 @@ def process_with_gemini(image_path: str) -> bytes:
         ),
     ]
     
-    # Configure to request image response
     generate_content_config = types.GenerateContentConfig(
         response_modalities=["IMAGE", "TEXT"]
     )
@@ -129,26 +157,22 @@ def process_with_gemini(image_path: str) -> bytes:
     try:
         print(f"Processing image with Gemini: {image_path}")
         
-        # Generate content using streaming
         for chunk in client.models.generate_content_stream(
             model=model_name,
             contents=contents,
             config=generate_content_config,
         ):
-            # Skip empty chunks
             if (not chunk.candidates or not chunk.candidates[0].content or 
                 not chunk.candidates[0].content.parts):
                 continue
             
             for part in chunk.candidates[0].content.parts:
-                # Check for image data
                 if (getattr(part, "inline_data", None) and 
                     getattr(part.inline_data, "data", None)):
                     
                     data_buffer = part.inline_data.data
                     print("Received image data from Gemini")
                     
-                    # Convert base64 string to bytes if needed
                     if isinstance(data_buffer, str):
                         try:
                             return base64.b64decode(data_buffer)
@@ -158,11 +182,9 @@ def process_with_gemini(image_path: str) -> bytes:
                                               detail="Failed to decode generated image")
                     return data_buffer
                 
-                # Log any text responses
                 if getattr(part, "text", None):
                     print(f"Gemini response text: {part.text}")
         
-        # If no image was returned
         print("No image generated by Gemini")
         raise HTTPException(status_code=500, detail="No image generated by Gemini")
         
@@ -175,7 +197,6 @@ def process_with_rembg(image_path: str) -> bytes:
     try:
         print(f"Processing image with REMBG: {image_path}")
         
-        # Remove background
         with open(image_path, 'rb') as f:
             input_data = f.read()
         
@@ -185,41 +206,32 @@ def process_with_rembg(image_path: str) -> bytes:
         
         print(f"Background removed. Image size: {img_no_bg.size}")
         
-        # Enhance the object before compositing for crisp catalog look
-        # 1. Sharpen the image for crispness
         img_no_bg = img_no_bg.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=3))
         
-        # 2. Enhance contrast and color
         enhancer = ImageEnhance.Contrast(img_no_bg)
-        img_no_bg = enhancer.enhance(1.1)  # Slight contrast boost
+        img_no_bg = enhancer.enhance(1.1)
         
         enhancer = ImageEnhance.Color(img_no_bg)
-        img_no_bg = enhancer.enhance(1.05)  # Slight color boost
+        img_no_bg = enhancer.enhance(1.05)
         
-        # 3. Clean up edges with slight blur on alpha channel
-        alpha = img_no_bg.split()[-1]  # Get alpha channel
-        alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.5))  # Smooth edges slightly
+        alpha = img_no_bg.split()[-1]
+        alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
         
-        # Recombine with cleaned alpha
         img_no_bg = Image.merge('RGBA', img_no_bg.split()[:3] + (alpha,))
         
-        # Create white background with slight padding for catalog look
-        padding = 50  # Add padding around object
+        padding = 50
         new_size = (img_no_bg.width + padding*2, img_no_bg.height + padding*2)
         white_bg = Image.new("RGBA", new_size, (255, 255, 255, 255))
         
-        # Center the object on white background
         offset = ((new_size[0] - img_no_bg.width) // 2, 
                  (new_size[1] - img_no_bg.height) // 2)
         white_bg.paste(img_no_bg, offset, img_no_bg)
         
-        # Convert to RGB and apply final sharpening
         final_image = white_bg.convert("RGB")
         final_image = final_image.filter(ImageFilter.UnsharpMask(radius=0.5, percent=100, threshold=2))
         
         print("Enhanced image for catalog quality")
         
-        # Convert to bytes
         img_byte_arr = io.BytesIO()
         final_image.save(img_byte_arr, format='JPEG', quality=98, optimize=True, dpi=(300, 300))
         img_byte_arr.seek(0)
@@ -234,9 +246,11 @@ def process_with_rembg(image_path: str) -> bytes:
         raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
 
 # --- FastAPI Endpoints ---
-@app.get("/")
-def read_index():
-    return FileResponse('frontend/index.html')
+
+# --- REMOVED: The root endpoint that serves index.html ---
+# @app.get("/")
+# def read_index():
+#     return FileResponse('frontend/index.html')
 
 @app.post("/search/image", response_model=List[Hit])
 async def search_image(file: UploadFile = File(...), top_k: int = 8, min_percent: float = 80.0):
@@ -246,7 +260,7 @@ async def search_image(file: UploadFile = File(...), top_k: int = 8, min_percent
     return attach_metadata(hits)
 
 @app.post("/search/text", response_model=List[Hit])
-async def search_text(query: str = Form(...), top_k: int = Form(8), min_percent: float = Form(70.0)):
+async def search_text(query: str = Form(...), top_k: int = Form(8), min_percent: float = Form(10.0)):
     qvec = embed_text(query, model, device)
     hits = search(index, qvec, id_map, top_k=top_k, min_percent=min_percent)
     return attach_metadata(hits)
@@ -266,23 +280,19 @@ async def preprocess_gemini(file: UploadFile = File(...)):
     try:
         print("Gemini endpoint called")
         
-        # Read the uploaded file
         file_content = await file.read()
         print(f"Received file: {file.filename}, size: {len(file_content)} bytes")
         
-        # Create a temporary file to save the uploaded image
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
             print(f"Saved temp file: {temp_file_path}")
         
         try:
-            # Process with Gemini API
             print("Calling Gemini API...")
             processed_image_bytes = process_with_gemini(temp_file_path)
             print(f"Received processed image: {len(processed_image_bytes)} bytes")
             
-            # Return the processed image
             return Response(
                 content=processed_image_bytes,
                 media_type="image/jpeg",
@@ -292,7 +302,6 @@ async def preprocess_gemini(file: UploadFile = File(...)):
             )
             
         finally:
-            # Clean up temporary file
             try:
                 os.unlink(temp_file_path)
                 print(f"Cleaned up temp file: {temp_file_path}")
@@ -311,23 +320,19 @@ async def preprocess_bgremover(file: UploadFile = File(...)):
     try:
         print("REMBG endpoint called")
         
-        # Read the uploaded file
         file_content = await file.read()
         print(f"Received file: {file.filename}, size: {len(file_content)} bytes")
         
-        # Create a temporary file to save the uploaded image
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
             print(f"Saved temp file: {temp_file_path}")
         
         try:
-            # Process with REMBG
             print("Processing with REMBG...")
             processed_image_bytes = process_with_rembg(temp_file_path)
             print(f"REMBG processing complete: {len(processed_image_bytes)} bytes")
             
-            # Return the processed image
             return Response(
                 content=processed_image_bytes,
                 media_type="image/jpeg",
@@ -337,7 +342,6 @@ async def preprocess_bgremover(file: UploadFile = File(...)):
             )
             
         finally:
-            # Clean up temporary file
             try:
                 os.unlink(temp_file_path)
                 print(f"Cleaned up temp file: {temp_file_path}")
@@ -350,7 +354,7 @@ async def preprocess_bgremover(file: UploadFile = File(...)):
         print(f"Error in REMBG preprocessing: {e}")
         raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
 
-@app.post("/quin")
+@app.post("/qwen")
 async def preprocess_quin(file: UploadFile = File(...)):
     content = await file.read()
     return Response(content=content, media_type=file.content_type)
