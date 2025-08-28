@@ -15,7 +15,7 @@ python-multipart
 # Utils
 pydantic
 matplotlib
-
+genai
 #remove bg
 rembg
 onnxruntime
